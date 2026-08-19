@@ -14,11 +14,11 @@ This roadmap breaks down the construction of the Vellura Micro-SaaS into actiona
 - [x] Create the `<VelluraLogo />` SVG component (Geometric Fold design).
 
 ## Phase 2: Database & Authentication (Supabase)
-- [ ] Create `.env.local` with Supabase credentials.
-- [ ] Provide SQL schema to the user to create the `profiles` and `documents` tables (with RLS policies).
-- [ ] Implement Supabase SSR Auth Middleware to protect `/dashboard` routes.
-- [ ] Build `/login` and `/register` pages using a Split-Screen layout (Left: Brand/Tagline, Right: Auth form).
-- [ ] Create a robust Auth utility hook/server action for session management.
+- [x] Create `.env.local` with Supabase credentials.
+- [x] Provide SQL schema to the user to create the `profiles` and `documents` tables (with RLS policies).
+- [x] Implement Supabase SSR Auth Middleware to protect `/dashboard` routes.
+- [x] Build `/login` and `/register` pages using a Split-Screen layout (Left: Brand/Tagline, Right: Auth form).
+- [x] Create a robust Auth utility hook/server action for session management.
 
 ## Phase 3: Global Context (User Profile)
 - [ ] Build the `/dashboard/layout.tsx` (Sidebar or Topbar navigation).
