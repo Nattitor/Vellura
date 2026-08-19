@@ -28,13 +28,21 @@ export async function signup(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
   });
 
   if (error) {
     return { error: error.message };
+  }
+
+  if (data?.user?.identities?.length === 0) {
+    return { error: "This email is already taken. Please sign in." };
+  }
+
+  if (!data.session) {
+    return { error: "Please check your email to confirm your account before logging in." };
   }
 
   revalidatePath("/", "layout");

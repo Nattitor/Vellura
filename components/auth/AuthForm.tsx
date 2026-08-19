@@ -152,11 +152,11 @@ export function AuthForm() {
         </AnimatePresence>
       </div>
 
-      <div className="mt-4 text-center">
+      <div className="mt-4 text-center relative z-10">
         <button
           type="button"
           onClick={toggleMode}
-          className="text-sm text-zinc-400 hover:text-white transition-colors"
+          className="text-sm text-zinc-400 hover:text-white transition-colors cursor-pointer p-2"
           disabled={isPending}
         >
           {isLoginMode 

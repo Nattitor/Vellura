@@ -21,11 +21,11 @@ This roadmap breaks down the construction of the Vellura Micro-SaaS into actiona
 - [x] Create a robust Auth utility hook/server action for session management.
 
 ## Phase 3: Global Context (User Profile)
-- [ ] Build the `/dashboard/layout.tsx` (Sidebar or Topbar navigation).
-- [ ] Build the `/dashboard/settings` page.
-- [ ] Implement a form for the user to input/edit their `resume_text` (Global Context).
-- [ ] Create Server Actions to update the user's profile in the Supabase database.
-- [ ] Add a Skeleton loading state while fetching the profile.
+- [x] Build the `/dashboard/layout.tsx` (Sidebar or Topbar navigation).
+- [x] Build the `/dashboard/settings` page.
+- [x] Implement a form for the user to input/edit their `resume_text` (Global Context).
+- [x] Create Server Actions to update the user's profile in the Supabase database.
+- [x] Add a Skeleton loading state while fetching the profile.
 
 ## Phase 4: The AI Generation Engine (Core)
 - [ ] Install AI dependencies: `ai` (Vercel AI SDK) and `@ai-sdk/google`.
