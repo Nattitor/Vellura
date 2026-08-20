@@ -28,12 +28,12 @@ This roadmap breaks down the construction of the Vellura Micro-SaaS into actiona
 - [x] Add a Skeleton loading state while fetching the profile.
 
 ## Phase 4: The AI Generation Engine (Core)
-- [ ] Install AI dependencies: `ai` (Vercel AI SDK) and `@ai-sdk/google`.
-- [ ] Create the Next.js Route Handler (`app/api/generate/route.ts`).
-- [ ] Implement the prompt engineering logic (merging user resume + job description + tone).
-- [ ] Build the `/dashboard/generate` frontend UI (Input Textareas, Tone Select, Model Select Dropdown).
-- [ ] Connect the UI to the backend using the `useCompletion` hook for real-time text streaming.
-- [ ] Implement the "Thinking State" animated shimmer border on the Generate button.
+- [x] Install AI dependencies: `ai` (Vercel AI SDK) and `@ai-sdk/google`.
+- [x] Create the Next.js Route Handler (`app/api/generate/route.ts`).
+- [x] Implement the prompt engineering logic (merging user resume + job description + tone).
+- [x] Build the `/dashboard/generate` frontend UI (Input Textareas, Tone Select, Model Select Dropdown).
+- [x] Connect the UI to the backend using the `useCompletion` hook for real-time text streaming.
+- [x] Implement the "Thinking State" animated shimmer border on the Generate button.
 
 ## Phase 5: SaaS Mechanics (Credits & Persistence)
 - [ ] Update `api/generate` to check the user's `credits` balance before calling the AI.
