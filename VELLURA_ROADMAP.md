@@ -35,17 +35,19 @@ This roadmap breaks down the construction of the Vellura Micro-SaaS into actiona
 - [x] Connect the UI to the backend using the `useCompletion` hook for real-time text streaming.
 - [x] Implement the "Thinking State" animated shimmer border on the Generate button.
 
-## Phase 5: SaaS Mechanics (Credits & Persistence)
-- [ ] Update `api/generate` to check the user's `credits` balance before calling the AI.
-- [ ] Deduct 1 credit from the `profiles` table after a successful generation.
-- [ ] Disable the Generate button and show an "Upgrade to Pro" stub modal if credits reach 0.
-- [ ] Save the successfully generated output to the `documents` table in Supabase.
-- [ ] Implement Toast notifications for API errors, rate limits, or empty fields.
+## Phase 5: Refined SaaS Mechanics & Engine Limits
+- [ ] Refactor `/dashboard/settings` to use a shadcn Tabs layout (Profile, AI & Usage, Preferences).
+- [ ] Add BYOK (Bring Your Own Key) and Language Selectors (UI/Output) to the Settings preferences.
+- [ ] Migrate database schema from `credits` to a `daily_limit` and `last_generation_date` system (3 free generations/day).
+- [ ] Update `api/generate` to enforce the new Daily Limit logic and check for BYOK.
+- [ ] Implement Dynamic Model Fallback in `api/generate` (switch models if primary fails/rate-limits).
+- [ ] Enhance Generate UI: Add Premium Loading States (e.g., "Analyzing professional context...") and predefined Tone Select dropdown.
+- [ ] Implement Session Timeout/Expiration in middleware (graceful redirect to `/login`).
 
 ## Phase 6: History & Final Polish
 - [ ] Build the `/dashboard/history` page to fetch and display past generated documents.
-- [ ] Implement `react-markdown` to render the AI output beautifully with proper typography.
-- [ ] Add "Copy to Clipboard" functionality (with Terminal Green success state).
+- [ ] Implement `react-markdown` to render the AI output beautifully using a Serif font.
+- [ ] Add Premium "Copy to Clipboard" overlay on output with 2-second checkmark success micro-interaction.
 - [ ] Add "Export to PDF" functionality.
 - [ ] Final Mobile-First QA (ensure responsive padding, no fake hovers, mobile menus work).
 - [ ] Update SEO Metadata for the production deployment.
