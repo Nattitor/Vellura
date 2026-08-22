@@ -1,5 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
-import { google } from "@ai-sdk/google";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { google, createGoogleGenerativeAI } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
 
@@ -8,13 +9,14 @@ export async function POST(req: Request) {
     const supabase = await createClient();
 
     // 1. Verify Authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const accessToken = session?.access_token;
 
     // 2. Parse Request Body
     const body = await req.json();
@@ -27,10 +29,10 @@ export async function POST(req: Request) {
       return new NextResponse("Job description is required", { status: 400 });
     }
 
-    // 3. Fetch User's Master Resume (Global Context)
+    // 3. Fetch User's Master Resume, Limits, and BYOK
     const { data: profile } = await supabase
       .from("profiles")
-      .select("resume_text")
+      .select("resume_text, daily_limit, last_generation_date, byok_key")
       .eq("id", user.id)
       .single();
 
@@ -41,6 +43,25 @@ export async function POST(req: Request) {
         status: 400,
       });
     }
+
+    const today = new Date().toISOString().split('T')[0];
+    let currentLimit = profile?.daily_limit ?? 3;
+    const lastDate = profile?.last_generation_date;
+
+    if (lastDate !== today) {
+      currentLimit = 3; // Reset daily limit for a new day
+    }
+
+    const hasBYOK = !!profile?.byok_key;
+
+    if (!hasBYOK && currentLimit <= 0) {
+      return new NextResponse("You have reached your daily limit.", { status: 402 });
+    }
+
+    // Configure Provider (BYOK or Default)
+    const aiProvider = hasBYOK 
+      ? createGoogleGenerativeAI({ apiKey: profile.byok_key }) 
+      : google;
 
     // 4. Construct Prompt
     const systemPrompt = `You are an elite, highly persuasive executive cover letter writer. 
@@ -56,13 +77,79 @@ ${resumeText}
 JOB DESCRIPTION:
 ${jobDescription}`;
 
-    // 5. Generate AI Stream
-    const result = await streamText({
-      model: google("gemini-3.7-flash"),
-      system: systemPrompt,
-      prompt: userPrompt,
-      temperature: 0.7,
-    });
+    // 5. Generate AI Stream with Dynamic Fallback
+    const handleFinish = async (text: string, modelName: string) => {
+      try {
+        console.log("onFinish triggered, starting DB updates...");
+        
+        const staticSupabase = createSupabaseClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            global: {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+              fetch: (url, init) => {
+                // Strip the Next.js abort signal to prevent it from killing the DB insert
+                // after the streaming response finishes.
+                const newInit = { ...init };
+                delete newInit.signal;
+                return fetch(url, newInit);
+              }
+            },
+          }
+        );
+        
+        if (!hasBYOK) {
+          const { error: profileError } = await staticSupabase
+            .from("profiles")
+            .update({ 
+              daily_limit: Math.max(0, currentLimit - 1),
+              last_generation_date: today
+            })
+            .eq("id", user.id);
+            
+          if (profileError) console.error("Error updating limits:", profileError);
+        }
+
+        const { error: docError } = await staticSupabase
+          .from("documents")
+          .insert({
+            user_id: user.id,
+            company_name: "Not Specified",
+            job_description: jobDescription,
+            generated_content: text,
+            ai_model_used: modelName
+          });
+          
+        if (docError) console.error("Error inserting document:", docError);
+        else console.log("Document successfully saved to DB!");
+        
+      } catch (err) {
+        console.error("Unhandled error in onFinish:", err);
+      }
+    };
+
+    let result;
+    try {
+      result = await streamText({
+        model: aiProvider("gemini-3.7-flash"),
+        system: systemPrompt,
+        prompt: userPrompt,
+        temperature: 0.7,
+        onFinish: async ({ text }) => handleFinish(text, "gemini-3.7-flash")
+      });
+    } catch (e) {
+      console.warn("Primary model failed, falling back to gemini-3.5-flash-lite...", e);
+      result = await streamText({
+        model: aiProvider("gemini-3.5-flash-lite"),
+        system: systemPrompt,
+        prompt: userPrompt,
+        temperature: 0.7,
+        onFinish: async ({ text }) => handleFinish(text, "gemini-3.5-flash-lite")
+      });
+    }
 
     return result.toTextStreamResponse();
   } catch (error: any) {
