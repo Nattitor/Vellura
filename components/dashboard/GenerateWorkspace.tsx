@@ -13,12 +13,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Copy, Check, Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { Copy, Check, Sparkles, Loader2, AlertCircle, Zap } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
-export function GenerateWorkspace() {
+export function GenerateWorkspace({ initialCredits = 5 }: { initialCredits?: number }) {
   const [tone, setTone] = useState("Professional & Polished");
   const [jobDescription, setJobDescription] = useState("");
   const [copied, setCopied] = useState(false);
+  const [credits, setCredits] = useState(initialCredits);
+  const [showProModal, setShowProModal] = useState(false);
 
   const {
     completion,
@@ -29,21 +40,30 @@ export function GenerateWorkspace() {
     api: "/api/generate",
     body: { tone },
     streamProtocol: "text",
+    onFinish: () => {
+      setCredits((c) => Math.max(0, c - 1));
+      toast.success("Document generated successfully!");
+    },
     onError: (err) => {
-      console.error(err);
+      toast.error(err.message || "Failed to generate document.");
     }
   });
 
   const handleGenerate = async () => {
-    console.log("Generate clicked, jobDescription:", jobDescription);
-    if (!jobDescription.trim()) return;
+    if (!jobDescription.trim()) {
+      toast.error("Please paste a job description first.");
+      return;
+    }
     
+    if (credits <= 0) {
+      setShowProModal(true);
+      return;
+    }
+
     try {
-      console.log("Calling complete...");
       await complete(jobDescription);
-      console.log("complete finished!");
     } catch (e) {
-      console.error("complete threw an error:", e);
+      // Error is handled by onError in useCompletion
     }
   };
 
@@ -92,15 +112,6 @@ export function GenerateWorkspace() {
           </div>
 
           <div className="mt-6 pt-4 border-t border-white/10">
-            {error && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-md flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-                <p className="text-sm text-red-400">
-                  {error.message || "An error occurred. Please make sure you have saved your Master Resume in Settings."}
-                </p>
-              </div>
-            )}
-            
             <div className="relative group">
               {/* Shimmer Border effect (Thinking State) */}
               {isLoading && (
@@ -115,7 +126,7 @@ export function GenerateWorkspace() {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin text-amethyst-glow" />
-                    Generating...
+                    Analyzing professional context...
                   </>
                 ) : (
                   <>
@@ -168,6 +179,26 @@ export function GenerateWorkspace() {
           )}
         </ScrollArea>
       </div>
+
+      {/* Upgrade to Pro Modal */}
+      <Dialog open={showProModal} onOpenChange={setShowProModal}>
+        <DialogContent className="bg-zinc-950 border border-white/10 text-white sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto w-12 h-12 rounded-full bg-amethyst-glow/20 flex items-center justify-center mb-4 border border-amethyst-glow/30">
+              <Zap className="w-6 h-6 text-amethyst-glow" />
+            </div>
+            <DialogTitle className="text-center text-xl">Out of Credits</DialogTitle>
+            <DialogDescription className="text-center text-zinc-400">
+              You've used all your free generation credits. Upgrade to Vellura Pro for unlimited cover letters, AI pitches, and advanced resume tailoring.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6 sm:justify-center">
+            <Button className="w-full bg-gradient-to-r from-amethyst-glow to-cyan-500 hover:opacity-90 text-white border-none font-semibold">
+              Upgrade to Pro — $9/mo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
