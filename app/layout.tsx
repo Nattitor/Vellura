@@ -15,7 +15,27 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Vellura | The Intelligent Workspace",
-  description: "Generate hyper-personalized cover letters and pitches with AI.",
+  description: "Generate hyper-personalized, premium executive cover letters and pitches with AI. The intelligent workspace for your career.",
+  openGraph: {
+    title: "Vellura | The Intelligent Workspace",
+    description: "Generate hyper-personalized, premium executive cover letters and pitches with AI.",
+    url: "https://vellura.com",
+    siteName: "Vellura",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Vellura | The Intelligent Workspace",
+    description: "Generate hyper-personalized, premium executive cover letters and pitches with AI.",
+  },
 };
 
 import { Toaster } from "@/components/ui/sonner";
