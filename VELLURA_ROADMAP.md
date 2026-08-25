@@ -36,18 +36,18 @@ This roadmap breaks down the construction of the Vellura Micro-SaaS into actiona
 - [x] Implement the "Thinking State" animated shimmer border on the Generate button.
 
 ## Phase 5: Refined SaaS Mechanics & Engine Limits
-- [ ] Refactor `/dashboard/settings` to use a shadcn Tabs layout (Profile, AI & Usage, Preferences).
-- [ ] Add BYOK (Bring Your Own Key) and Language Selectors (UI/Output) to the Settings preferences.
-- [ ] Migrate database schema from `credits` to a `daily_limit` and `last_generation_date` system (3 free generations/day).
-- [ ] Update `api/generate` to enforce the new Daily Limit logic and check for BYOK.
-- [ ] Implement Dynamic Model Fallback in `api/generate` (switch models if primary fails/rate-limits).
-- [ ] Enhance Generate UI: Add Premium Loading States (e.g., "Analyzing professional context...") and predefined Tone Select dropdown.
-- [ ] Implement Session Timeout/Expiration in middleware (graceful redirect to `/login`).
+- [x] Refactor `/dashboard/settings` to use a shadcn Tabs layout (Profile, AI & Usage, Preferences).
+- [x] Add BYOK (Bring Your Own Key) and Language Selectors (UI/Output) to the Settings preferences.
+- [x] Migrate database schema from `credits` to a `daily_limit` and `last_generation_date` system (3 free generations/day).
+- [x] Update `api/generate` to enforce the new Daily Limit logic and check for BYOK.
+- [x] Implement Dynamic Model Fallback in `api/generate` (switch models if primary fails/rate-limits).
+- [x] Enhance Generate UI: Add Premium Loading States (e.g., "Analyzing professional context...") and predefined Tone Select dropdown.
+- [x] Implement Session Timeout/Expiration in middleware (graceful redirect to `/login`).
 
 ## Phase 6: History & Final Polish
-- [ ] Build the `/dashboard/history` page to fetch and display past generated documents.
-- [ ] Implement `react-markdown` to render the AI output beautifully using a Serif font.
-- [ ] Add Premium "Copy to Clipboard" overlay on output with 2-second checkmark success micro-interaction.
-- [ ] Add "Export to PDF" functionality.
-- [ ] Final Mobile-First QA (ensure responsive padding, no fake hovers, mobile menus work).
-- [ ] Update SEO Metadata for the production deployment.
+- [x] Build the `/dashboard/history` page to fetch and display past generated documents.
+- [x] Implement `react-markdown` to render the AI output beautifully using a Serif font.
+- [x] Add Premium "Copy to Clipboard" overlay on output with 2-second checkmark success micro-interaction.
+- [x] Add "Export to PDF" functionality.
+- [x] Final Mobile-First QA (ensure responsive padding, no fake hovers, mobile menus work).
+- [x] Update SEO Metadata for the production deployment.

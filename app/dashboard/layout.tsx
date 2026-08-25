@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { Topbar } from "@/components/dashboard/Topbar";
+import { LanguageProvider } from "@/components/providers/language-provider";
+import { AvatarProvider } from "@/components/providers/avatar-provider";
+import { LanguageType } from "@/utils/i18n/dictionaries";
+import { getEffectiveDailyLimit } from "@/utils/limits";
 
 export default async function DashboardLayout({
   children,
@@ -17,19 +21,26 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Fetch the user's profile to get credits
+  // Fetch the user's profile to get daily limit, last generation date, and ui_language
   const { data: profile } = await supabase
     .from("profiles")
-    .select("credits")
+    .select("daily_limit, last_generation_date, ui_language, byok_key")
     .eq("id", user.id)
     .single();
 
+  const initialLang = (profile?.ui_language as LanguageType) || "English";
+  const effectiveLimit = getEffectiveDailyLimit(profile);
+
   return (
-    <div className="min-h-screen bg-deep-void selection:bg-amethyst-glow/30 selection:text-white flex flex-col">
-      <Topbar userEmail={user.email || "User"} credits={profile?.credits ?? 5} />
-      <main className="flex-1 flex flex-col">
-        {children}
-      </main>
-    </div>
+    <LanguageProvider initialLanguage={initialLang}>
+      <AvatarProvider>
+        <div className="min-h-screen bg-deep-void selection:bg-amethyst-glow/30 selection:text-white flex flex-col">
+          <Topbar userEmail={user.email || "User"} dailyLimit={effectiveLimit} />
+          <main className="flex-1 flex flex-col">
+            {children}
+          </main>
+        </div>
+      </AvatarProvider>
+    </LanguageProvider>
   );
 }

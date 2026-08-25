@@ -3,7 +3,8 @@ import { ProfileForm } from "@/components/dashboard/ProfileForm";
 import { AIUsageForm } from "@/components/dashboard/AIUsageForm";
 import { PreferencesForm } from "@/components/dashboard/PreferencesForm";
 import { redirect } from "next/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SettingsHeader } from "@/components/dashboard/SettingsHeader";
+import { getEffectiveDailyLimit } from "@/utils/limits";
 
 export default async function SettingsPage() {
   const { data: profile, error } = await getProfile();
@@ -12,41 +13,41 @@ export default async function SettingsPage() {
     redirect("/login");
   }
 
+  // Calculate profile completion
+  const hasResume = profile?.resume_text && profile.resume_text.trim().length > 50;
+  const hasBYOK = !!profile?.byok_key;
+  const completionPercentage = (hasResume ? 60 : 0) + (hasBYOK ? 40 : 0);
+
+  const effectiveLimit = getEffectiveDailyLimit(profile);
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Settings</h1>
-        <p className="text-zinc-400">Manage your profile, AI limits, and preferences.</p>
-      </div>
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <SettingsHeader completionPercentage={completionPercentage} />
 
-      <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="bg-zinc-900 border border-white/10 p-1 mb-8">
-          <TabsTrigger value="profile" className="data-[state=active]:bg-amethyst-glow data-[state=active]:text-white text-zinc-400">
-            Profile Context
-          </TabsTrigger>
-          <TabsTrigger value="usage" className="data-[state=active]:bg-amethyst-glow data-[state=active]:text-white text-zinc-400">
-            AI & Usage
-          </TabsTrigger>
-          <TabsTrigger value="preferences" className="data-[state=active]:bg-amethyst-glow data-[state=active]:text-white text-zinc-400">
-            Preferences
-          </TabsTrigger>
-        </TabsList>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        {/* Left Column: Context (Takes up 2/3 on extra large screens) */}
+        <div className="xl:col-span-2 space-y-8">
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-amethyst-glow/20 to-cyan-400/20 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
+            <div className="relative">
+              <ProfileForm 
+                initialResume={profile?.resume_text || ""} 
+                outputLanguage={profile?.output_language || "English"}
+              />
+            </div>
+          </div>
+        </div>
 
-        <TabsContent value="profile" className="space-y-6">
-          <ProfileForm initialResume={profile?.resume_text || ""} />
-        </TabsContent>
-
-        <TabsContent value="usage" className="space-y-6">
+        {/* Right Column: Usage & Preferences */}
+        <div className="space-y-8">
           <AIUsageForm 
-            dailyLimit={profile?.daily_limit ?? 3} 
-            hasBYOK={!!profile?.byok_key} 
+            dailyLimit={effectiveLimit} 
+            hasBYOK={hasBYOK} 
           />
-        </TabsContent>
-
-        <TabsContent value="preferences" className="space-y-6">
-          <PreferencesForm />
-        </TabsContent>
-      </Tabs>
+          
+          <PreferencesForm initialOutputLanguage={profile?.output_language || "English"} />
+        </div>
+      </div>
     </div>
   );
 }

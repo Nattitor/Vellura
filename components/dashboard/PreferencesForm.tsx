@@ -9,35 +9,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CheckCircle2, Languages, Moon } from "lucide-react";
+import { Languages, Moon } from "lucide-react";
 import { toast } from "sonner";
+import { updateProfile } from "@/app/actions/profile";
+import { useLanguage } from "@/components/providers/language-provider";
+import { LanguageType } from "@/utils/i18n/dictionaries";
 
-export function PreferencesForm() {
-  const [uiLanguage, setUiLanguage] = useState("English");
-  const [outputLanguage, setOutputLanguage] = useState("English");
+export function PreferencesForm({ initialOutputLanguage = "English" }: { initialOutputLanguage?: string }) {
+  const { language, setLanguage, outputLanguage: contextOutputLang, setOutputLanguage: setContextOutputLang, t } = useLanguage();
+  const [uiLanguage, setUiLanguage] = useState<LanguageType>(language);
+  const [outputLanguage, setOutputLanguage] = useState(contextOutputLang || initialOutputLanguage);
   const [isPending, setIsPending] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsPending(true);
-    // Since we are mocking language preferences for now (not saved in DB schema),
-    // we'll just simulate a save delay and show a toast.
-    setTimeout(() => {
+    try {
+      const { error } = await updateProfile({ 
+        output_language: outputLanguage
+      });
+      if (error) {
+        toast.error("Failed to save preferences.");
+      } else {
+        setLanguage(uiLanguage);
+        setContextOutputLang(outputLanguage);
+        toast.success("Preferences saved successfully");
+      }
+    } catch (e) {
+      toast.error("An error occurred");
+    } finally {
       setIsPending(false);
-      toast.success("Preferences saved successfully");
-    }, 800);
+    }
   };
 
   return (
-    <div className="w-full ethereal-panel p-6 md:p-8 rounded-xl flex flex-col space-y-8">
-      
-      <div className="flex flex-col space-y-2">
-        <h2 className="text-xl font-semibold text-white">App Preferences</h2>
+    <div className="w-full ethereal-panel p-6 md:p-8 rounded-xl flex flex-col space-y-8 relative overflow-hidden">
+      {/* Decorative background element for premium feel */}
+      <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-amethyst-glow/5 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="flex flex-col space-y-2 relative z-10">
+        <h2 className="text-xl font-semibold text-white">{t.settings.appPref}</h2>
         <p className="text-sm text-zinc-400">
-          Customize your experience in Vellura.
+          {t.settings.appPrefDesc}
         </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6 relative z-10">
         {/* UI Language */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/5">
           <div className="flex items-center space-x-3">
@@ -45,18 +61,19 @@ export function PreferencesForm() {
               <Languages className="w-5 h-5 text-zinc-400" />
             </div>
             <div>
-              <p className="text-white font-medium">UI Language</p>
-              <p className="text-sm text-zinc-500">The language of the dashboard interface.</p>
+              <p className="text-white font-medium">{t.settings.uiLang}</p>
+              <p className="text-sm text-zinc-500">{t.settings.uiLangDesc}</p>
             </div>
           </div>
-          <Select value={uiLanguage} onValueChange={setUiLanguage}>
-            <SelectTrigger className="w-[180px] bg-zinc-900/50 border-white/10 text-white focus:ring-amethyst-glow">
+          <Select value={uiLanguage} onValueChange={(val) => setUiLanguage(val as LanguageType)}>
+            <SelectTrigger className="w-[180px] bg-zinc-900/50 border-white/10 text-white focus:ring-amethyst-glow transition-all">
               <SelectValue placeholder="Select Language" />
             </SelectTrigger>
             <SelectContent className="bg-zinc-950 border-white/10 text-white">
               <SelectItem value="English">English</SelectItem>
               <SelectItem value="Spanish">Spanish (Español)</SelectItem>
               <SelectItem value="French">French (Français)</SelectItem>
+              <SelectItem value="Portuguese">Portuguese (PT-BR)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -68,19 +85,19 @@ export function PreferencesForm() {
               <Languages className="w-5 h-5 text-amethyst-glow" />
             </div>
             <div>
-              <p className="text-white font-medium">AI Output Language</p>
-              <p className="text-sm text-zinc-500">Default language for generated cover letters.</p>
+              <p className="text-white font-medium">{t.settings.outputLang}</p>
+              <p className="text-sm text-zinc-500">{t.settings.outputLangDesc}</p>
             </div>
           </div>
-          <Select value={outputLanguage} onValueChange={setOutputLanguage}>
-            <SelectTrigger className="w-[180px] bg-zinc-900/50 border-white/10 text-white focus:ring-amethyst-glow">
+          <Select value={outputLanguage} onValueChange={(val) => val && setOutputLanguage(val)}>
+            <SelectTrigger className="w-[180px] bg-zinc-900/50 border-white/10 text-white focus:ring-amethyst-glow transition-all">
               <SelectValue placeholder="Select Language" />
             </SelectTrigger>
             <SelectContent className="bg-zinc-950 border-white/10 text-white">
               <SelectItem value="English">English</SelectItem>
               <SelectItem value="Spanish">Spanish</SelectItem>
               <SelectItem value="French">French</SelectItem>
-              <SelectItem value="German">German</SelectItem>
+              <SelectItem value="Portuguese">Portuguese (PT-BR)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -92,8 +109,8 @@ export function PreferencesForm() {
               <Moon className="w-5 h-5 text-zinc-400" />
             </div>
             <div>
-              <p className="text-white font-medium">Theme</p>
-              <p className="text-sm text-zinc-500">Vellura is strictly designed for Dark Mode.</p>
+              <p className="text-white font-medium">{t.settings.theme}</p>
+              <p className="text-sm text-zinc-500">{t.settings.themeDesc}</p>
             </div>
           </div>
           <Button disabled variant="outline" className="bg-zinc-900/50 border-white/10 text-zinc-400 w-[180px] justify-start opacity-70">
@@ -102,13 +119,13 @@ export function PreferencesForm() {
         </div>
       </div>
 
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-end pt-4 relative z-10">
         <Button
           onClick={handleSave}
           disabled={isPending}
-          className="bg-amethyst-glow hover:bg-amethyst-glow/90 text-white active:scale-[0.98] transition-transform min-w-[120px]"
+          className="bg-amethyst-glow hover:bg-amethyst-glow/90 text-white active:scale-[0.98] transition-all min-w-[120px] shadow-[0_0_15px_rgba(139,92,246,0.3)] hover:shadow-[0_0_20px_rgba(139,92,246,0.5)]"
         >
-          {isPending ? "Saving..." : "Save Preferences"}
+          {isPending ? t.settings.saving : t.settings.savePref}
         </Button>
       </div>
 
