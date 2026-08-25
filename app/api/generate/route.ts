@@ -3,6 +3,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { google, createGoogleGenerativeAI } from "@ai-sdk/google";
 import { streamText } from "ai";
 import { NextResponse } from "next/server";
+import { getEffectiveDailyLimit, DEFAULT_DAILY_LIMIT } from "@/utils/limits";
 
 export async function POST(req: Request) {
   try {
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("Received generation request:", body);
     
-    const { prompt: jobDescription, tone } = body;
+    const { prompt: jobDescription, tone, modelPreference = "speed" } = body;
 
     if (!jobDescription) {
       console.log("Job description missing");
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
     // 3. Fetch User's Master Resume, Limits, and BYOK
     const { data: profile } = await supabase
       .from("profiles")
-      .select("resume_text, daily_limit, last_generation_date, byok_key")
+      .select("resume_text, daily_limit, last_generation_date, byok_key, output_language")
       .eq("id", user.id)
       .single();
 
@@ -45,12 +46,7 @@ export async function POST(req: Request) {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    let currentLimit = profile?.daily_limit ?? 3;
-    const lastDate = profile?.last_generation_date;
-
-    if (lastDate !== today) {
-      currentLimit = 3; // Reset daily limit for a new day
-    }
+    let currentLimit = getEffectiveDailyLimit(profile);
 
     const hasBYOK = !!profile?.byok_key;
 
@@ -67,6 +63,7 @@ export async function POST(req: Request) {
     const systemPrompt = `You are an elite, highly persuasive executive cover letter writer. 
 Your task is to write a highly tailored cover letter based on the user's master resume and the provided job description.
 Tone: ${tone || "Professional & Polished"}
+Target Language: ${profile?.output_language || "English"} (You MUST output the letter entirely in this language).
 Keep the letter concise (3-4 paragraphs max), highly impactful, and avoiding cliché buzzwords. Focus on aligning the user's past impact with the job's requirements. Do not invent facts that are not in the resume. Output standard markdown.`;
 
     const userPrompt = `USER RESUME:
@@ -133,12 +130,15 @@ ${jobDescription}`;
 
     let result;
     try {
+      // Use a "reasoning" model if requested, otherwise use a "speed" model.
+      const primaryModelName = modelPreference === "reasoning" ? "gemini-3.1-pro-preview" : "gemini-3.7-flash";
+      
       result = await streamText({
-        model: aiProvider("gemini-3.7-flash"),
+        model: aiProvider(primaryModelName),
         system: systemPrompt,
         prompt: userPrompt,
         temperature: 0.7,
-        onFinish: async ({ text }) => handleFinish(text, "gemini-3.7-flash")
+        onFinish: async ({ text }) => handleFinish(text, primaryModelName)
       });
     } catch (e) {
       console.warn("Primary model failed, falling back to gemini-3.5-flash-lite...", e);
