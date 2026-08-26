@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/components/providers/language-provider";
+import { extractCompanyAndRole } from "@/utils/extract-company";
 
 type Document = {
   id: string;
@@ -25,7 +26,8 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleCopy = (content: string, id: string) => {
-    navigator.clipboard.writeText(content);
+    const cleanContent = content.replace(/<!--[\s\S]*?-->/g, "").trim();
+    navigator.clipboard.writeText(cleanContent);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
@@ -38,9 +40,11 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
       const doc = new jsPDF();
       
       let plainText = content
+        .replace(/<!--[\s\S]*?-->/g, '')
         .replace(/\*\*(.*?)\*\*/g, '$1')
         .replace(/\*(.*?)\*/g, '$1')
-        .replace(/#{1,6}\s?/g, '');
+        .replace(/#{1,6}\s?/g, '')
+        .trim();
         
       doc.setFont("times", "normal");
       doc.setFontSize(11);
@@ -117,13 +121,31 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
       <div className="divide-y divide-white/5">
         {initialDocuments.map((doc) => {
           const isExpanded = expandedId === doc.id;
+          const displayTitle = (doc.company_name && doc.company_name !== "Not Specified")
+            ? doc.company_name
+            : extractCompanyAndRole(doc.job_description, doc.generated_content);
+
+          const getModelLabel = (m: string) => {
+            const lower = (m || "").toLowerCase();
+            if (lower.includes("terra")) return "GPT-5.6 Terra";
+            if (lower.includes("luna")) return "GPT-5.6 Luna";
+            if (lower.includes("sol")) return "GPT-5.6 Sol";
+            if (lower.includes("opus")) return "Claude 5 Opus";
+            if (lower.includes("sonnet")) return "Claude 5 Sonnet";
+            if (lower.includes("deepseek")) return "DeepSeek V4";
+            if (lower.includes("gemma")) return "Gemma 4 31B";
+            if (lower.includes("flash")) return "Gemini 3.7 Flash";
+            if (lower.includes("pro")) return "Gemini 3.1 Pro";
+            return doc.ai_model_used.split("/").pop() || "AI Model";
+          };
+
           return (
             <div key={doc.id} className="flex flex-col">
               {/* Inbox Row */}
               <button
                 onClick={() => setExpandedId(isExpanded ? null : doc.id)}
                 className={cn(
-                  "flex items-center px-6 py-4 hover:bg-zinc-900/50 transition-colors w-full text-left group",
+                  "flex items-center px-6 py-4 hover:bg-zinc-900/50 transition-colors w-full text-left group cursor-pointer",
                   isExpanded ? "bg-zinc-900/30" : ""
                 )}
               >
@@ -135,16 +157,16 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
                     "text-sm font-medium truncate transition-colors",
                     isExpanded ? "text-amethyst-glow" : "text-white"
                   )}>
-                    {doc.company_name !== "Not Specified" ? doc.company_name : "General Cover Letter"}
+                    {displayTitle}
                   </span>
                   <span className="text-xs text-zinc-500 truncate mt-0.5 flex items-center gap-1.5">
-                    <Briefcase className="w-3 h-3" />
+                    <Briefcase className="w-3 h-3 text-zinc-400" />
                     {t.history.targeting}
                   </span>
                 </div>
-                <div className="w-32 hidden sm:flex items-center">
-                  <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-medium bg-zinc-900 border border-white/10 text-zinc-400">
-                    {doc.ai_model_used.includes("pro") ? "Pro" : "Speed"}
+                <div className="w-36 hidden sm:flex items-center">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-zinc-900 border border-white/10 text-cyan-300/90 font-mono shadow-sm">
+                    {getModelLabel(doc.ai_model_used)}
                   </span>
                 </div>
                 <div className="w-40 text-right">
@@ -184,7 +206,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
 
                     <div className="bg-zinc-900/30 p-8 rounded-xl border border-white/5 max-h-[600px] overflow-y-auto">
                       <article className="prose prose-invert prose-p:font-serif prose-headings:font-serif prose-sm sm:prose-base max-w-none text-zinc-300">
-                        <ReactMarkdown>{doc.generated_content}</ReactMarkdown>
+                        <ReactMarkdown>{doc.generated_content.replace(/<!--[\s\S]*?-->/g, "").trim()}</ReactMarkdown>
                       </article>
                     </div>
                   </div>
