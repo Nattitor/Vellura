@@ -69,6 +69,57 @@ export async function updateBYOK(key: string) {
   return { success: true };
 }
 
+export async function updateProviderKey(provider: string, key: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  // Fetch current byok_key
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("byok_key")
+    .eq("id", user.id)
+    .single();
+
+  let keys: Record<string, string> = {};
+  if (profile?.byok_key) {
+    try {
+      if (profile.byok_key.trim().startsWith("{")) {
+        keys = JSON.parse(profile.byok_key);
+      } else {
+        keys = { google: profile.byok_key };
+      }
+    } catch {
+      keys = { google: profile.byok_key };
+    }
+  }
+
+  if (key.trim() === "") {
+    delete keys[provider];
+  } else {
+    keys[provider] = key.trim();
+  }
+
+  const serialized = Object.keys(keys).length > 0 ? JSON.stringify(keys) : "";
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ byok_key: serialized })
+    .eq("id", user.id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true, keys };
+}
+
 export async function getProfile() {
   const supabase = await createClient();
 
