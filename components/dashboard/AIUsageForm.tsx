@@ -44,7 +44,7 @@ export function AIUsageForm({ dailyLimit, hasBYOK }: { dailyLimit: number; hasBY
       <div className="flex flex-col space-y-3 relative z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amethyst-glow/10 border border-amethyst-glow/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-amethyst-glow/10 flex items-center justify-center">
               <Zap className="w-4 h-4 text-amethyst-glow" />
             </div>
             <div>
@@ -54,11 +54,11 @@ export function AIUsageForm({ dailyLimit, hasBYOK }: { dailyLimit: number; hasBY
           </div>
           <div className="flex flex-col items-end shrink-0 pl-3">
             <span className="text-xl font-bold font-mono text-white tracking-tight">
-              {hasBYOK ? "∞" : dailyLimit}
+              {dailyLimit}
               <span className="text-xs text-zinc-500 font-normal ml-1">/ {DEFAULT_DAILY_LIMIT}</span>
             </span>
             <span className="text-[10px] text-amethyst-glow font-medium">
-              {hasBYOK ? "BYOK" : t.settings.remainingGen}
+              {t.settings.remainingGen}
             </span>
           </div>
         </div>
@@ -102,7 +102,7 @@ export function AIUsageForm({ dailyLimit, hasBYOK }: { dailyLimit: number; hasBY
         ) : (
           <div className="flex items-center gap-2.5 bg-cyan-950/30 border border-cyan-500/20 px-3.5 py-2.5 rounded-lg">
             <Shield className="w-4 h-4 text-cyan-400 shrink-0" />
-            <p className="text-xs text-cyan-100 font-medium">Your API key is active and securely stored.</p>
+            <p className="text-xs text-cyan-100 font-medium">{t.settings.keyStoredSecurely || "Tu clave API está activa y almacenada de forma segura."}</p>
           </div>
         )}
 

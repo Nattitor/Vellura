@@ -140,23 +140,32 @@
   .ethereal-panel {
     @apply bg-zinc-950/50 border border-white/5 backdrop-blur-md rounded-xl shadow-lg;
   }
+
+  .ethereal-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  }
 }
 
 /* Custom Webkit Scrollbar */
-::-webkit-scrollbar {
+::-webkit-scrollbar,
+.ethereal-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
-::-webkit-scrollbar-track {
+::-webkit-scrollbar-track,
+.ethereal-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  background-color: oklch(0.269 0 0); /* zinc-800 */
-  border-radius: 10px;
+::-webkit-scrollbar-thumb,
+.ethereal-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background-color: oklch(0.556 0 0); /* amethyst/lighter zinc */
+::-webkit-scrollbar-thumb:hover,
+.ethereal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
 }

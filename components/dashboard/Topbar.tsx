@@ -9,11 +9,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { logout } from "@/app/actions/auth";
 import { useLanguage } from "@/components/providers/language-provider";
 import { useAvatar } from "@/components/providers/avatar-provider";
+import { useQuota } from "@/components/providers/quota-provider";
 
-export function Topbar({ userEmail, dailyLimit = 0 }: { userEmail: string; dailyLimit?: number }) {
+export function Topbar({ userEmail }: { userEmail: string; dailyLimit?: number }) {
   const pathname = usePathname();
   const { t } = useLanguage();
   const { avatarUrl, uploadAvatar, removeAvatar } = useAvatar();
+  const { dailyLimit } = useQuota();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);

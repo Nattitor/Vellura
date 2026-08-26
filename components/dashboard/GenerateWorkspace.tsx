@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useCompletion } from "@ai-sdk/react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
@@ -13,30 +14,102 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Copy, Check, Sparkles, Loader2, Zap, Search, Brain, PenTool, MessageSquare, Gauge, Wand2, FileText } from "lucide-react";
+import { 
+  Copy, 
+  Check, 
+  Sparkles, 
+  Loader2, 
+  Zap, 
+  Search, 
+  Brain, 
+  PenTool, 
+  MessageSquare, 
+  Gauge, 
+  Wand2, 
+  FileText, 
+  Sliders, 
+  Cpu, 
+  Maximize2,
+  Info,
+  ChevronRight,
+  KeyRound,
+  Key,
+  RotateCcw,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
-import { useRef, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/components/providers/language-provider";
+import { useQuota } from "@/components/providers/quota-provider";
+import { AI_MODELS, AIProviderId, DEFAULT_SPEED_MODEL, AI_PROVIDERS } from "@/utils/ai-models";
+import { ModelSelectionDrawer } from "@/components/dashboard/ModelSelectionDrawer";
+import { stripMetadataComments } from "@/utils/extract-company";
 
-export function GenerateWorkspace({ initialDailyLimit = 3 }: { initialDailyLimit?: number }) {
+export function GenerateWorkspace({
+  configuredProviders = [],
+}: {
+  configuredProviders?: string[];
+}) {
   const { t } = useLanguage();
-  const [tone, setTone] = useState("Professional & Polished");
-  const [modelPref, setModelPref] = useState("speed");
+  const router = useRouter();
+  const { dailyLimit, decrementLimit } = useQuota();
+  const [tone, setTone] = useState("professional");
+  const [modelPref, setModelPref] = useState<"speed" | "reasoning">("speed");
   const [jobDescription, setJobDescription] = useState("");
   const [copied, setCopied] = useState(false);
-  const [dailyLimit, setDailyLimit] = useState(initialDailyLimit);
-  const [showProModal, setShowProModal] = useState(false);
+  const [isExpandModalOpen, setIsExpandModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Expert Mode State
+  const [isExpertMode, setIsExpertMode] = useState(false);
+  const [expertProvider, setExpertProvider] = useState<AIProviderId>("google");
+  const [expertModel, setExpertModel] = useState<string>("gemini-3.1-pro-preview");
+  const [temperature, setTemperature] = useState<number>(0.7);
+  const [customDirectives, setCustomDirectives] = useState<string>("");
 
   const outputRef = useRef<HTMLDivElement>(null);
+
+  const toneLabels: Record<string, string> = {
+    professional: t.workspace.toneProfessional,
+    confident: t.workspace.toneConfident,
+    enthusiastic: t.workspace.toneEnthusiastic,
+    executive: t.workspace.toneExecutive,
+  };
+
+  const parseErrorInCompletion = (text: string | null | undefined): string | null => {
+    if (!text) return null;
+    const trimmed = text.trim();
+    if (
+      trimmed.startsWith('{"type":"error"') ||
+      trimmed.startsWith('{"error"') ||
+      trimmed.includes('"insufficient_quota"') ||
+      trimmed.includes('"invalid_api_key"') ||
+      trimmed.includes('"model_not_found"')
+    ) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return parsed.error?.message || parsed.message || parsed.error || "Error de cuota o clave API en el proveedor.";
+      } catch {
+        if (trimmed.includes("insufficient_quota")) {
+          return "Tu cuenta del proveedor de IA ha excedido su cuota o saldo disponible (insufficient_quota). Por favor verifica tu saldo en la consola del proveedor o cambia de modelo.";
+        }
+        return "Error al generar con la clave API del proveedor.";
+      }
+    }
+    return null;
+  };
+
+  // A generation is strictly using BYOK (unlimited) ONLY when in Expert Mode with the corresponding key connected
+  const isUsingOwnKey = isExpertMode && configuredProviders.includes(expertProvider);
 
   const {
     completion,
@@ -45,27 +118,58 @@ export function GenerateWorkspace({ initialDailyLimit = 3 }: { initialDailyLimit
     error,
   } = useCompletion({
     api: "/api/generate",
-    body: { tone, modelPreference: modelPref },
+    body: { 
+      tone: toneLabels[tone] || tone, 
+      modelPreference: isExpertMode ? "expert" : modelPref,
+      expertModelId: isExpertMode ? expertModel : undefined,
+      expertProviderId: isExpertMode ? expertProvider : undefined,
+      temperature,
+      customDirectives: isExpertMode ? customDirectives : undefined,
+    },
     streamProtocol: "text",
-    onFinish: () => {
-      setDailyLimit((c) => Math.max(0, c - 1));
-      toast.success("Document generated successfully!");
+    onFinish: (_prompt, comp) => {
+      const cleanComp = comp ? comp.replace(/<!--[\s\S]*?-->/g, "").trim() : "";
+      if (!cleanComp || cleanComp.length < 150) {
+        const errorMsg = isUsingOwnKey
+          ? (t.workspace.byokQuotaErrorDesc || "El proveedor de IA no devolvió contenido suficiente o canceló la generación (posible falta de saldo o cuota en tu clave API).")
+          : (t.workspace.serverOverloadDesc || "La generación se interrumpió o los servidores de IA están sobrecargados. Tus intentos diarios gratuitos no fueron descontados.");
+        setApiError(errorMsg);
+        toast.error(errorMsg, { duration: 10000 });
+        return;
+      }
+      const err = parseErrorInCompletion(comp);
+      if (err) {
+        setApiError(err);
+        toast.error(err, { duration: 10000 });
+        return;
+      }
+      setApiError(null);
+      if (!isUsingOwnKey) {
+        decrementLimit();
+      }
+      toast.success(t.workspace.generatedSuccess || "Document generated successfully!");
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to generate document.");
+      const msg = err.message || (isUsingOwnKey ? t.workspace.byokErrorWarning : t.workspace.serverOverloadDesc) || "Failed to generate document.";
+      setApiError(msg);
+      toast.error(msg, {
+        duration: 10000,
+      });
     }
   });
 
   const handleGenerate = async () => {
     if (!jobDescription.trim()) {
-      toast.error("Please paste a job description first.");
+      toast.error(t.workspace.emptyWarning || "Please paste a job description first.");
       return;
     }
     
-    if (dailyLimit <= 0) {
-      toast.error("You've reached your daily limit! Add a BYOK key in settings.");
+    if (!isUsingOwnKey && dailyLimit <= 0) {
+      toast.error(t.workspace.limitReached || "You've reached your daily limit!");
       return;
     }
+
+    setApiError(null);
     
     // Smooth scroll to output on mobile
     if (window.innerWidth < 1024 && outputRef.current) {
@@ -75,8 +179,11 @@ export function GenerateWorkspace({ initialDailyLimit = 3 }: { initialDailyLimit
 
     try {
       await complete(jobDescription);
-    } catch (e) {
-      // Error is handled by onError in useCompletion
+    } catch (e: any) {
+      // Caught by onError, but also fallback record error message
+      if (e?.message) {
+        setApiError(e.message);
+      }
     }
   };
 
@@ -92,159 +199,383 @@ export function GenerateWorkspace({ initialDailyLimit = 3 }: { initialDailyLimit
   }, [isLoading]);
 
   const handleCopy = () => {
-    if (!completion) return;
-    navigator.clipboard.writeText(completion);
+    if (!completion || activeError) return;
+    const cleanContent = completion.replace(/<!--[\s\S]*?-->/g, "").trim();
+    navigator.clipboard.writeText(cleanContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleApplyDrawerSettings = (params: {
+    modelId: string;
+    providerId: AIProviderId;
+    temperature: number;
+    customDirectives: string;
+    isExpert: boolean;
+  }) => {
+    setExpertModel(params.modelId);
+    setExpertProvider(params.providerId);
+    setTemperature(params.temperature);
+    setCustomDirectives(params.customDirectives);
+    setIsExpertMode(params.isExpert);
+    if (!params.isExpert) {
+      setModelPref("speed");
+    }
+    setApiError(null);
+    setIsDrawerOpen(false);
+    toast.success(params.isExpert ? "Modelo y parámetros actualizados" : "Modo estándar activado");
+  };
+
+  const selectedModelObj = AI_MODELS.find((m) => m.id === expertModel);
+  const wordCount = jobDescription.trim() ? jobDescription.trim().split(/\s+/).length : 0;
+  const charCount = jobDescription.length;
+  const detectedStreamError = parseErrorInCompletion(completion);
+  const activeError = apiError || detectedStreamError;
+  const cleanCompletion = stripMetadataComments(completion);
+
   return (
-    <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 min-h-[calc(100vh-8rem)]">
+    <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-stretch gap-6 lg:h-[calc(100vh-7.5rem)] lg:min-h-[640px]">
       
-      {/* Left Column: Input Form */}
-      <div className="w-full lg:w-1/3 flex flex-col space-y-4">
-        <div className="ethereal-panel p-6 rounded-xl flex flex-col flex-1">
-          <div className="space-y-1 mb-6">
-            <h2 className="text-xl font-semibold text-white">{t.workspace.jobContext}</h2>
-            <p className="text-sm text-zinc-400">
-              {t.workspace.jobContextDesc}
-            </p>
-          </div>
-
-          <div className="space-y-6 flex-1 flex flex-col">
-            <div className="grid grid-cols-1 gap-6">
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-amethyst-glow" />
-                  {t.workspace.toneLabel}
-                </label>
-                <Select value={tone} onValueChange={(val) => val && setTone(val)}>
-                  <SelectTrigger className="w-full h-11 bg-zinc-900/50 border-white/10 text-white focus:ring-amethyst-glow transition-all">
-                    <SelectValue placeholder="Select a tone">
-                      {tone}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-950 border-white/10 text-white z-[100]">
-                    <SelectItem value="Professional & Polished">Professional & Polished</SelectItem>
-                    <SelectItem value="Confident & Direct">Confident & Direct</SelectItem>
-                    <SelectItem value="Enthusiastic & Passionate">Enthusiastic & Passionate</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                  <Brain className="w-4 h-4 text-cyan-400" />
-                  {t.workspace.modelLabel}
-                </label>
-                <Select value={modelPref} onValueChange={(val) => val && setModelPref(val)}>
-                  <SelectTrigger className="w-full h-11 bg-zinc-900/50 border-white/10 text-white focus:ring-cyan-500 transition-all">
-                    <SelectValue placeholder="Select a model">
-                      {modelPref === "speed" ? "Speed (Flash)" : "Reasoning (Pro)"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-950 border-white/10 text-white z-[100]">
-                    <SelectItem value="speed">
-                      <div className="flex items-center gap-2">
-                        <Gauge className="w-4 h-4 text-cyan-400" />
-                        Speed (Flash)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="reasoning">
-                      <div className="flex items-center gap-2">
-                        <Wand2 className="w-4 h-4 text-amethyst-glow" />
-                        Reasoning (Pro)
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+      {/* Left Column: Input Form (Full Height Symmetrical Flexbox) */}
+      <div className="w-full lg:w-1/3 flex flex-col h-full min-h-0">
+        <div className="ethereal-panel p-6 rounded-xl flex flex-col h-full min-h-0">
+          
+          {/* Header with (i) Tooltip & Drawer Trigger */}
+          <div className="flex items-center justify-between gap-3 mb-5 shrink-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-white tracking-tight">{t.workspace.jobContext}</h2>
+              
+              {/* Sleek (i) Info Tooltip Hover */}
+              <div className="relative group/tooltip">
+                <button
+                  type="button"
+                  aria-label="Información de contexto"
+                  className="w-5 h-5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-help"
+                >
+                  <Info className="w-3 h-3" />
+                </button>
+                <div className="absolute left-0 top-full mt-2 hidden group-hover/tooltip:block w-64 p-2.5 bg-zinc-950/95 border border-white/15 rounded-xl text-[11px] text-zinc-300 shadow-2xl z-50 backdrop-blur-md leading-relaxed animate-in fade-in zoom-in-95 duration-150 pointer-events-none">
+                  {t.workspace.jobContextDesc}
+                </div>
               </div>
             </div>
 
-            <div className="flex-1 space-y-4 flex flex-col min-h-0">
-              <div>
-                <label className="text-sm font-medium text-zinc-300 mb-3 block flex items-center gap-2">
+            {/* Expert Mode Drawer Trigger Pill */}
+            <button
+              type="button"
+              onClick={() => setIsDrawerOpen(true)}
+              className={`whitespace-nowrap shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+                isExpertMode
+                  ? "bg-cyan-500/15 border-cyan-400/50 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
+                  : "bg-zinc-900/60 border-white/10 text-zinc-400 hover:text-white hover:border-white/20"
+              }`}
+            >
+              <Cpu className="w-3.5 h-3.5 shrink-0" />
+              <span className="whitespace-nowrap">{isExpertMode ? "Modo Experto (BYOK)" : t.workspace.expertMode}</span>
+            </button>
+          </div>
+
+          {/* Form Middle Section */}
+          <div className="space-y-4 flex-1 flex flex-col min-h-0">
+            
+            {/* Tone Selector */}
+            <div className="space-y-1.5 shrink-0">
+              <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-amethyst-glow" />
+                {t.workspace.toneLabel}
+              </label>
+              <Select value={tone} onValueChange={(val) => val && setTone(val)}>
+                <SelectTrigger className="w-full h-10 bg-zinc-900/50 border-white/10 text-white text-sm focus:ring-amethyst-glow transition-all">
+                  <SelectValue placeholder={t.workspace.toneSelectPlaceholder}>
+                    {toneLabels[tone] || t.workspace.toneProfessional}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-950 border-white/10 text-white z-[100]">
+                  <SelectItem value="professional" className="text-sm">{t.workspace.toneProfessional}</SelectItem>
+                  <SelectItem value="confident" className="text-sm">{t.workspace.toneConfident}</SelectItem>
+                  <SelectItem value="enthusiastic" className="text-sm">{t.workspace.toneEnthusiastic}</SelectItem>
+                  <SelectItem value="executive" className="text-sm">{t.workspace.toneExecutive}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Model Selector / Drawer Trigger */}
+            {!isExpertMode ? (
+              <div className="space-y-1.5 shrink-0">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-cyan-400" />
+                    {t.workspace.modelLabel}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsDrawerOpen(true)}
+                    className="text-xs text-zinc-400 hover:text-cyan-300 flex items-center gap-0.5 cursor-pointer font-medium"
+                  >
+                    <span>Explorar catálogo</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+
+                <Select value={modelPref} onValueChange={(val: any) => setModelPref(val)}>
+                  <SelectTrigger className="w-full h-10 bg-zinc-900/50 border-white/10 text-white text-sm focus:ring-cyan-500 transition-all">
+                    <SelectValue placeholder="Select mode">
+                      {modelPref === "speed" ? t.workspace.modelSpeedLabel : t.workspace.modelReasoningLabel}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-950 border-white/10 text-white z-[100]">
+                    <SelectItem value="speed" className="text-sm">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Gauge className="w-4 h-4 text-cyan-400" />
+                        <span>{t.workspace.modelSpeedLabel}</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="reasoning" className="text-sm">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Wand2 className="w-4 h-4 text-amethyst-glow" />
+                        <span>{t.workspace.modelReasoningLabel}</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              /* Expert Mode Model Card Pill (Click opens Google AI Studio style drawer) */
+              <div className="space-y-1.5 shrink-0 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-cyan-300 flex items-center gap-2">
+                    <Cpu className="w-4 h-4 text-cyan-400" />
+                    {t.workspace.modelLabel}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsDrawerOpen(true)}
+                    className="text-xs text-cyan-400 hover:text-cyan-200 flex items-center gap-1 font-medium cursor-pointer"
+                  >
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Cambiar motor</span>
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsDrawerOpen(true)}
+                  className="w-full h-10 bg-cyan-950/20 hover:bg-cyan-950/40 border border-cyan-500/40 hover:border-cyan-400 rounded-lg px-3.5 flex items-center justify-between text-white text-xs font-mono transition-all group/btn cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.1)]"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.8)] shrink-0" />
+                    <span className="truncate font-semibold text-cyan-200">{selectedModelObj?.name || expertModel}</span>
+                    <span className="text-[10px] text-zinc-400 font-sans">({expertProvider})</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-sans shrink-0 group-hover/btn:bg-cyan-500/30 transition-colors">
+                    T: {temperature}
+                  </span>
+                </button>
+                <div className="flex items-center gap-1.5 pt-0.5 text-[11px] font-medium">
+                  {isUsingOwnKey ? (
+                    <span className="text-cyan-400/90 flex items-center gap-1">
+                      <span>♾️</span>
+                      <span>Generaciones ilimitadas con tu clave ({AI_PROVIDERS[expertProvider]?.name || expertProvider})</span>
+                    </span>
+                  ) : (
+                    <span className="text-zinc-400 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                      <span>Plan Gratuito • Consume 1 intento diario</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Dynamic Flex Job Description Textarea (Refined subtle glow + Custom Ethereal Scrollbar) */}
+            <div className="space-y-1.5 flex-1 flex flex-col min-h-[180px]">
+              <div className="flex items-center justify-between shrink-0">
+                <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
                   <FileText className="w-4 h-4 text-zinc-400" />
                   {t.workspace.jobDescriptionLabel}
                 </label>
+                <button
+                  type="button"
+                  onClick={() => setIsExpandModalOpen(true)}
+                  className="text-xs text-zinc-400 hover:text-cyan-300 flex items-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-white/5 transition-all cursor-pointer"
+                  title="Expandir editor"
+                >
+                  <Maximize2 className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="text-[11px] font-medium">{t.workspace.expand}</span>
+                </button>
+              </div>
+
+              {/* Textarea with subtle, non-intrusive focus style and custom scrollbar */}
+              <div className="flex-1 flex flex-col min-h-0 relative">
                 <Textarea
                   placeholder={t.workspace.placeholder}
-                  className="w-full bg-zinc-900/50 border-white/10 text-white font-mono text-sm leading-relaxed focus-visible:ring-amethyst-glow resize-none min-h-[250px] max-h-[400px] overflow-y-auto"
                   value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
+                  onChange={(e) => {
+                    setJobDescription(e.target.value);
+                    if (apiError) setApiError(null);
+                  }}
+                  className="w-full flex-1 min-h-0 resize-none bg-zinc-900/40 border-white/10 hover:border-white/15 focus:border-white/25 text-white placeholder:text-zinc-500 focus-visible:ring-1 focus-visible:ring-white/15 rounded-xl text-xs sm:text-sm p-4 leading-relaxed font-sans ethereal-scrollbar transition-all shadow-none"
                 />
               </div>
+
+              {/* Word & Character Counter Bottom Bar */}
+              <div className="flex items-center justify-between text-[11px] text-zinc-500 shrink-0 pt-1 font-mono px-1">
+                <span>{wordCount} palabras</span>
+                <span>{charCount} caracteres</span>
+              </div>
             </div>
+
           </div>
 
-          <div className="mt-6 pt-4 border-t border-white/10">
-            <div className="relative group">
-              {/* Shimmer Border effect (Thinking State) */}
-              {isLoading && (
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-amethyst-glow via-cyan-400 to-amethyst-glow rounded-md blur opacity-75 animate-pulse" />
+          {/* Submit Button (Pinned Bottom) */}
+          <div className="pt-4 shrink-0 border-t border-white/5 mt-2">
+            <Button
+              onClick={handleGenerate}
+              disabled={isLoading || !jobDescription.trim()}
+              className="w-full h-11 bg-gradient-to-r from-amethyst-glow to-cyan-500 hover:from-amethyst-glow/90 hover:to-cyan-500/90 text-white font-semibold text-sm shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_25px_rgba(6,182,212,0.4)] transition-all cursor-pointer rounded-xl active:scale-[0.98]"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span>{t.workspace.analyzing}</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="mr-2 h-4 w-4" />
+                  <span>{t.workspace.btnGenerate}</span>
+                </>
               )}
-              
-              <Button
-                onClick={handleGenerate}
-                disabled={isLoading || !jobDescription.trim()}
-                className="w-full bg-white text-zinc-950 hover:bg-zinc-200 active:scale-[0.98] transition-all font-medium py-6 rounded-xl group relative overflow-hidden"
-              >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Generating...
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center gap-2 w-full relative z-10">
-                    <Sparkles className="w-5 h-5 group-hover:text-amethyst-glow transition-colors" />
-                    {t.workspace.btnGenerate}
-                  </span>
-                )}
-              </Button>
-            </div>
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Right Column: Output Preview */}
+      {/* Right Column: Output Display (Full Height Matching Flexbox) */}
       <div 
         ref={outputRef}
-        className="w-full lg:w-2/3 min-h-[500px] ethereal-panel rounded-xl flex flex-col relative overflow-hidden group"
+        className="w-full lg:w-2/3 ethereal-panel rounded-xl flex flex-col h-full min-h-[450px] lg:min-h-0 relative overflow-hidden group"
       >
+        {/* Subtle dynamic background glow */}
+        <div className="absolute top-0 right-0 -mr-24 -mt-24 w-96 h-96 bg-amethyst-glow/5 rounded-full blur-3xl pointer-events-none group-hover:bg-amethyst-glow/10 transition-colors duration-1000" />
         
-        {/* Subtle Background Elements */}
-        <div className="absolute top-0 right-0 -mr-32 -mt-32 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -ml-32 -mb-32 w-96 h-96 bg-amethyst-glow/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none mix-blend-overlay"></div>
-        
-        {/* Copy to Clipboard Header */}
-        <div className="absolute top-0 left-0 right-0 p-4 flex justify-end items-center bg-gradient-to-b from-zinc-950/80 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Glassmorphic Top Bar with Generous Visual Clearance */}
+        <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-zinc-950/95 via-zinc-950/80 to-transparent backdrop-blur-md z-20 flex justify-between items-center border-b border-white/5">
+          <span className="text-xs text-zinc-300 font-medium px-3 py-1 bg-zinc-900/80 rounded-full border border-white/10 shadow-sm flex items-center gap-1.5">
+            {isUsingOwnKey ? (
+              <span className="text-cyan-300 font-semibold flex items-center gap-1.5">
+                <span className="text-sm">♾️</span>
+                <span>{t.workspace.byokUnlimitedBanner || "Generaciones Ilimitadas (Modo BYOK)"}</span>
+              </span>
+            ) : (
+              <>
+                <span className="font-bold text-amethyst-glow">{dailyLimit}</span> {t.workspace.limitRemainingLabel}
+              </>
+            )}
+          </span>
+
           <Button
             size="sm"
             variant="secondary"
             onClick={handleCopy}
-            disabled={!completion || isLoading}
-            className="bg-white/10 hover:bg-white/20 text-white border-white/5 backdrop-blur-md"
+            disabled={!completion || isLoading || !!activeError}
+            className="bg-white/10 hover:bg-white/20 text-white border-white/10 backdrop-blur-md cursor-pointer transition-all active:scale-95"
           >
             {copied ? (
               <Check className="w-4 h-4 text-emerald-400" />
             ) : (
               <Copy className="w-4 h-4" />
             )}
-            <span className="ml-2">{copied ? "Copied" : "Copy"}</span>
+            <span className="ml-2 text-xs font-semibold">{copied ? t.workspace.copied : t.workspace.copy}</span>
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 p-8 md:p-12 prose prose-invert prose-p:text-zinc-300 prose-headings:text-white max-w-none">
-          {completion ? (
-            <div className="font-serif text-lg leading-relaxed text-zinc-200 relative z-10">
-              <div className="flex justify-between items-center text-xs text-zinc-500 px-1 mb-4">
-                <span>{dailyLimit} limit remaining today</span>
+        {/* Scrollable Letter Content or Error State Card */}
+        <ScrollArea className="flex-1 h-full prose prose-invert prose-p:text-zinc-300 prose-headings:text-white max-w-none">
+          {activeError ? (
+            /* Premium Context-Aware Error Card */
+            <div className="h-full flex flex-col items-center justify-center text-center p-8 pt-24 relative z-10 max-w-lg mx-auto space-y-5 animate-in fade-in zoom-in-95 duration-200">
+              <div className={cn(
+                "w-16 h-16 rounded-2xl border flex items-center justify-center shadow-lg transition-all",
+                isUsingOwnKey
+                  ? "bg-amber-500/15 border-amber-500/30 text-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.25)]"
+                  : "bg-cyan-500/15 border-cyan-500/30 text-cyan-400 shadow-[0_0_25px_rgba(6,182,212,0.25)]"
+              )}>
+                {isUsingOwnKey ? (
+                  <KeyRound className="w-8 h-8 text-amber-400" />
+                ) : (
+                  <AlertTriangle className="w-8 h-8 text-cyan-400" />
+                )}
               </div>
-              <ReactMarkdown>{completion}</ReactMarkdown>
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-white">
+                  {isUsingOwnKey
+                    ? (t.workspace.byokQuotaErrorTitle || "Error de Cuota o Clave API")
+                    : (t.workspace.serverOverloadTitle || "Servidores de IA Temporariamente Saturados")}
+                </h3>
+                <div className="text-xs text-zinc-300 leading-relaxed bg-zinc-950/80 border border-white/10 p-4 rounded-xl font-mono text-left whitespace-pre-wrap shadow-inner">
+                  {activeError}
+                </div>
+                <p className="text-xs text-zinc-400 leading-relaxed pt-1">
+                  {isUsingOwnKey
+                    ? (t.workspace.byokQuotaErrorDesc || "Tu proveedor de IA rechazó la solicitud debido a saldo insuficiente en tu cuenta o modelo no disponible con tu clave.")
+                    : (t.workspace.serverOverloadDesc || "El servicio de IA está experimentando una alta demanda momentánea. Tus intentos diarios gratuitos no fueron descontados.")}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 w-full max-w-md mx-auto">
+                {isUsingOwnKey ? (
+                  <>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setApiError(null);
+                        setIsDrawerOpen(true);
+                      }}
+                      className="w-full h-10 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Sliders className="w-3.5 h-3.5" />
+                      <span>{t.workspace.switchModelBtn || "Cambiar Modelo"}</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => router.push("/dashboard/settings?tab=advanced")}
+                      className="w-full h-10 bg-zinc-900/80 hover:bg-zinc-800 border-white/10 hover:border-white/20 text-zinc-200 hover:text-white text-xs font-semibold rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                      <Key className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>{t.workspace.checkApiKeysBtn || "Revisar Claves API"}</span>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      onClick={() => handleGenerate()}
+                      className="w-full h-10 bg-amethyst-glow hover:bg-amethyst-glow/90 text-white text-xs font-semibold rounded-xl cursor-pointer shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>{t.workspace.retryGenerationBtn || "Reintentar Generación"}</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setApiError(null);
+                        setIsDrawerOpen(true);
+                      }}
+                      className="w-full h-10 bg-zinc-900/80 hover:bg-zinc-800 border-white/10 hover:border-white/20 text-zinc-200 hover:text-white text-xs font-semibold rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                      <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>{t.workspace.switchModelBtn || "Cambiar Modelo"}</span>
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : cleanCompletion ? (
+            <div className="font-serif text-base md:text-lg leading-relaxed text-zinc-200 relative z-10 pt-20 px-6 md:px-10 pb-12">
+              <ReactMarkdown>{cleanCompletion}</ReactMarkdown>
             </div>
           ) : isLoading ? (
-            <div className="h-full flex flex-col items-center justify-center text-center py-32 relative z-10">
+            <div className="h-full flex flex-col items-center justify-center text-center py-28 relative z-10">
               <div className="relative w-20 h-20 mb-8 flex items-center justify-center">
                 <div className="absolute inset-0 border-t-2 border-amethyst-glow rounded-full animate-spin"></div>
                 <div className="absolute inset-2 border-r-2 border-cyan-400 rounded-full animate-spin-reverse"></div>
@@ -261,7 +592,7 @@ export function GenerateWorkspace({ initialDailyLimit = 3 }: { initialDailyLimit
               </div>
             </div>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center space-y-6 py-32 relative z-10">
+            <div className="h-full flex flex-col items-center justify-center text-center space-y-6 py-28 relative z-10">
               <div className="relative group-hover:scale-110 transition-transform duration-700">
                 <div className="absolute inset-0 bg-amethyst-glow/20 blur-xl rounded-full"></div>
                 <div className="w-20 h-20 rounded-2xl bg-zinc-900/80 border border-white/10 flex items-center justify-center backdrop-blur-sm relative z-10 rotate-3 group-hover:rotate-6 transition-transform">
@@ -270,7 +601,7 @@ export function GenerateWorkspace({ initialDailyLimit = 3 }: { initialDailyLimit
               </div>
               <div className="space-y-2">
                 <h3 className="text-xl font-semibold text-white">{t.workspace.title}</h3>
-                <p className="text-zinc-400 max-w-sm mx-auto">
+                <p className="text-zinc-400 max-w-sm mx-auto text-sm">
                   {t.workspace.subtitle}
                 </p>
               </div>
@@ -279,23 +610,58 @@ export function GenerateWorkspace({ initialDailyLimit = 3 }: { initialDailyLimit
         </ScrollArea>
       </div>
 
-      {/* Upgrade to Pro Modal */}
-      <Dialog open={showProModal} onOpenChange={setShowProModal}>
-        <DialogContent className="bg-zinc-950 border border-white/10 text-white sm:max-w-md">
-          <DialogHeader>
-            <div className="mx-auto w-12 h-12 rounded-full bg-amethyst-glow/20 flex items-center justify-center mb-4 border border-amethyst-glow/30">
-              <Zap className="w-6 h-6 text-amethyst-glow" />
+      {/* Slide-Over Drawer: Google AI Studio Style Model Selection */}
+      <ModelSelectionDrawer
+        open={isDrawerOpen}
+        onOpenChange={setIsDrawerOpen}
+        selectedModel={expertModel}
+        selectedProvider={expertProvider}
+        temperature={temperature}
+        customDirectives={customDirectives}
+        isExpertMode={isExpertMode}
+        configuredProviders={configuredProviders}
+        onApply={handleApplyDrawerSettings}
+      />
+
+      {/* Expanded Job Description Dialog */}
+      <Dialog open={isExpandModalOpen} onOpenChange={setIsExpandModalOpen}>
+        <DialogContent className="bg-zinc-950 border border-white/15 text-white sm:max-w-3xl md:max-w-4xl p-6 rounded-2xl shadow-2xl">
+          <DialogHeader className="space-y-1">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-lg font-semibold text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-cyan-400" />
+                <span>{t.workspace.expandTitle}</span>
+              </DialogTitle>
+              <span className="text-xs text-zinc-500 font-mono pr-6">
+                {wordCount} words • {charCount} chars
+              </span>
             </div>
-            <DialogTitle className="text-center text-xl">Out of Credits</DialogTitle>
-            <DialogDescription className="text-center text-zinc-400">
-              You've used all your free generation credits. Upgrade to Vellura Pro for unlimited cover letters, AI pitches, and advanced resume tailoring.
+            <DialogDescription className="text-xs text-zinc-400">
+              {t.workspace.expandDesc}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-6 sm:justify-center">
-            <Button className="w-full bg-gradient-to-r from-amethyst-glow to-cyan-500 hover:opacity-90 text-white border-none font-semibold">
-              Upgrade to Pro — $9/mo
+
+          <div className="py-4">
+            <Textarea
+              placeholder={t.workspace.placeholder}
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+              className="w-full h-[380px] md:h-[480px] bg-zinc-900/60 border-white/10 text-white placeholder:text-zinc-500 focus-visible:ring-1 focus-visible:ring-white/15 focus:border-white/25 rounded-xl text-sm p-4 leading-relaxed font-sans resize-none ethereal-scrollbar"
+            />
+          </div>
+
+          <div className="flex items-center justify-between border-t border-white/10 pt-4">
+            <span className="text-xs text-zinc-400">
+              {t.workspace.expandDesc}
+            </span>
+            <Button
+              type="button"
+              onClick={() => setIsExpandModalOpen(false)}
+              className="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-5 py-2 rounded-xl cursor-pointer"
+            >
+              {t.workspace.done}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -289,7 +289,7 @@ export function ProfileForm({
             value={resume}
             onChange={(e) => setResume(e.target.value)}
             placeholder={t.settings.masterResumePlaceholder}
-            className="h-[345px] min-h-[345px] max-h-[345px] bg-zinc-900/50 border-white/10 text-white font-mono text-sm leading-relaxed focus-visible:ring-amethyst-glow resize-none overflow-y-auto"
+            className="h-[420px] min-h-[420px] max-h-[420px] bg-zinc-900/50 border-white/10 text-white font-mono text-sm leading-relaxed focus-visible:ring-amethyst-glow resize-none overflow-y-auto ethereal-scrollbar"
             disabled={isPending || isParsing}
           />
 
