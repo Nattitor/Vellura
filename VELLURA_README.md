@@ -11,18 +11,26 @@ Vellura is a Full-Stack Micro-SaaS application designed to generate hyper-person
 ## 🚀 Key Features
 
 *   **Real-Time AI Streaming:** Utilizes the Vercel AI SDK to stream responses chunk-by-chunk, providing immediate visual feedback without long loading spinners.
-*   **Model Agnosticism:** Dynamically routes requests between Google Gemini 1.5 (Primary) and alternative LLMs based on user selection.
+*   **Model Agnosticism with Resilient Cascade:** Dynamically routes requests through Google Gemini (Speed/Reasoning) with automatic OpenRouter fallback (Nemotron, GLM, Laguna) to avoid provider saturation. Smart short-circuit when OpenRouter rate-limit is hit.
 *   **Global User Context:** Users store their base resume/experience in a secure Supabase profile. This context is silently injected into the AI system prompt to eliminate repetitive data entry.
-*   **SaaS Mechanics (Credits System):** Implements a functional database-driven credit system. Users consume credits per generation, showcasing real-world monetization logic.
-*   **Persistent History:** All generated documents are securely saved to a PostgreSQL database (Supabase) with Row Level Security (RLS) enabled.
-*   **Professional Export:** Supports rich Markdown rendering and one-click PDF exports.
+*   **SaaS Mechanics (5 free generations/day):** Functional database-driven daily limit system. Users consume 1 credit per generation, with automatic UTC-midnight reset.
+*   **Expert Mode + BYOK:** Power users can connect their own API keys (OpenAI, Anthropic, DeepSeek, OpenRouter, Google) to unlock frontier models with unlimited generations.
+*   **Persistent History:** All generated documents are securely saved to a PostgreSQL database (Supabase) with Row Level Security (RLS) enabled. Search, filter by provider/model, paginate, and export.
+*   **Professional Export:** Supports rich Markdown rendering and one-click PDF exports (jspdf).
+*   **4-Language UI:** Full internationalization (English, Spanish, French, Portuguese) with localized AI output language.
+
+---
 
 ## 🛠 Tech Stack
 
-*   **Framework:** Next.js 15 (App Router, Server Components, Server Actions)
-*   **AI Engine:** Vercel AI SDK (`ai`, `@ai-sdk/google`) & Google Gemini API
-*   **Database & Auth:** Supabase (PostgreSQL, SSR Middleware Authentication)
-*   **Styling:** Tailwind CSS + shadcn/ui (Radix Primitives)
+*   **Framework:** Next.js 15.3 (App Router, Turbopack, Server Components, Server Actions)
+*   **AI Engine:** Vercel AI SDK (`ai`, `@ai-sdk/google`, `@ai-sdk/openai`, `@ai-sdk/anthropic`)
+*   **AI Providers:** Google Gemini (system), OpenRouter (free fallback), OpenAI / Anthropic / DeepSeek (BYOK)
+*   **Database & Auth:** Supabase (PostgreSQL + SSR Auth + RLS)
+*   **Styling:** Tailwind CSS v4 + shadcn/ui (Radix Primitives)
+*   **i18n:** Custom context provider (4 languages)
+
+---
 
 ## 💻 Getting Started
 
@@ -38,7 +46,26 @@ npm install
 ```
 
 ### 3. Set up Environment Variables
-Create a `.env.local` file in the root directory and add your Supabase and Gemini API keys.
+Create a `.env.local` file in the root directory with the following keys:
+
+```env
+# Supabase (required)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co/
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+# Google AI (required — primary provider for the free tier)
+GOOGLE_GENERATIVE_AI_API_KEY=your-google-ai-key
+
+# OpenRouter (recommended — enables free-model fallback when Google is saturated)
+OPENROUTER_API_KEY=sk-or-v1-your-key
+
+# Optional — paid BYOK providers for Expert Mode
+OPENAI_API_KEY=sk-proj-...
+ANTHROPIC_API_KEY=sk-ant-...
+DEEPSEEK_API_KEY=sk-...
+```
+
+> **Note on OpenRouter free tier:** All free OpenRouter models share a single 50 requests/day per-account quota. For production scale, load $5 USD of credit on the OpenRouter account to unlock ~5000 free-model generations.
 
 ### 4. Run the Development Server
 ```bash
@@ -46,4 +73,14 @@ npm run dev
 ```
 
 ---
+
+## 📚 Documentation
+
+*   **`VELLURA_SPECS.md`** — Architectural specification (tech stack, schema, design system, AI cascade).
+*   **`VELLURA_ROADMAP.md`** — Execution roadmap with phase status, including the Phase 7 AI cascade resilience work.
+*   **`VELLURA_CODESTYLE.md`** — Code style and design signature ("AI Ethereal & Minimalist").
+*   **`AUDIT_REPORT.md`** — Current state technical audit, including completed work, known debt, and prioritized work order.
+
+---
+
 *Designed and engineered as part of the Nattitor portfolio.*
