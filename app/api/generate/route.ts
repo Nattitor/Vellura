@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { getEffectiveDailyLimit } from "@/utils/limits";
 import { resolveAIModel } from "@/utils/ai-providers";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
 import { AIProviderId, DEFAULT_SPEED_MODEL } from "@/utils/ai-models";
 import { extractCompanyAndRole } from "@/utils/extract-company";
 
@@ -80,15 +81,17 @@ export async function POST(req: Request) {
       return new NextResponse("You have reached your daily limit.", { status: 402 });
     }
 
-    // 4. Resolve Model & Provider
-    const { model, modelName } = resolveAIModel({
-      providerId: expertProviderId as AIProviderId,
-      modelId: expertModelId,
-      mode: modelPreference === "expert" ? "expert" : modelPreference,
-      userKeys,
-    });
+    // Pre-flight: validate at least one functional key exists before attempting cascade
+    const hasGoogleKey = !!process.env.GOOGLE_GENERATIVE_AI_API_KEY || !!userKeys.google;
+    const hasOpenRouterKey = !!process.env.OPENROUTER_API_KEY || !!userKeys.openrouter;
+    if (!isUsingOwnKey && !hasGoogleKey && !hasOpenRouterKey) {
+      return new NextResponse(
+        "No API keys configured. Add a provider key in Settings > Advanced, or contact support.",
+        { status: 400 }
+      );
+    }
 
-    // 5. Construct Prompts
+    // 4. Construct Prompts
     const systemPrompt = `You are an elite, highly persuasive executive cover letter writer. 
 Your task is to write a highly tailored cover letter based on the user's master resume and the provided job description.
 Tone: ${tone || "Professional & Polished"}
@@ -110,7 +113,7 @@ ${resumeText}
 JOB DESCRIPTION:
 ${jobDescription}`;
 
-    // 6. DB Finish Callback
+    // 5. DB Finish Callback
     const handleFinish = async (text: string, usedModelName: string, wasFallback = false) => {
       try {
         if (!text || text.trim().length < 150) {
@@ -148,7 +151,7 @@ ${jobDescription}`;
         );
         
         // Deduct limit only if valid completion and using free tier
-        if (!isUsingOwnKey && !wasFallback) {
+        if (!isUsingOwnKey) {
           const { error: profileError } = await staticSupabase
             .from("profiles")
             .update({ 
@@ -179,22 +182,193 @@ ${jobDescription}`;
       }
     };
 
-    // 7. Stream text response with native non-blocking SSE response
-    const streamResult = streamText({
-      model,
-      system: systemPrompt,
-      prompt: userPrompt,
-      temperature: typeof temperature === "number" ? temperature : 0.7,
-      onFinish: async ({ text }) => handleFinish(text, modelName, false),
+    // 6. Build Candidate Model List
+    // Try OpenRouter first (less saturated, multi-provider), then fallback to Google direct
+    const openrouterKey = userKeys.openrouter || process.env.OPENROUTER_API_KEY;
+    console.log(`[OpenRouter] system env key present: ${!!process.env.OPENROUTER_API_KEY}, user BYOK present: ${!!userKeys.openrouter}`);
+    let openrouterClient = null;
+    if (openrouterKey) {
+      openrouterClient = createOpenAI({
+        baseURL: "https://openrouter.ai/api/v1",
+        apiKey: openrouterKey,
+        headers: {
+          "HTTP-Referer": "https://vellura.ai",
+          "X-Title": "Vellura AI Workspace",
+        },
+      });
+      console.log(`[OpenRouter] client initialized, key prefix: ${openrouterKey.substring(0, 12)}...`);
+    } else {
+      console.warn(`[OpenRouter] NO KEY available - cascade will only use Google direct models`);
+    }
+
+    const googleClient = createGoogleGenerativeAI({
+      apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || userKeys.google,
     });
 
-    return streamResult.toTextStreamResponse({
+    let candidateConfigs: Array<{ model: any; modelName: string; isFallback: boolean }> = [];
+
+    if (modelPreference === "speed") {
+      // Speed Mode: Google first → OpenRouter models (if key, but skip on first 429) → Gemini 3.6 Flash (last resort)
+      // All OpenRouter free models share a single 50/day per-account quota, so we probe only one OR model first.
+      candidateConfigs = [
+        { model: googleClient("gemini-3.7-flash"), modelName: "gemini-3.7-flash", isFallback: false },
+        ...(openrouterClient
+          ? [{ model: openrouterClient("nvidia/nemotron-3.5-lightning:free"), modelName: "nemotron-3.5-lightning", isFallback: true }]
+          : []),
+        ...(openrouterClient
+          ? [{ model: openrouterClient("z-ai/glm-5.2:free"), modelName: "glm-5.2", isFallback: true }]
+          : []),
+        ...(openrouterClient
+          ? [{ model: openrouterClient("poolside/laguna-xs-2.1:free"), modelName: "laguna-xs-2.1", isFallback: true }]
+          : []),
+        { model: googleClient("gemini-3.6-flash"), modelName: "gemini-3.6-flash", isFallback: true },
+      ];
+    } else if (modelPreference === "reasoning") {
+      // Reasoning Mode: Gemma 4 (Google) → Nemotron 3 Ultra (OpenRouter) → Gemma 4 26B (OR) → Gemma 4 31B (OR free) → Gemini 3.6 Flash
+      // All OpenRouter free models share a single 50/day per-account quota.
+      candidateConfigs = [
+        { model: googleClient("gemma-4-31b-it"), modelName: "gemma-4-31b-it", isFallback: false },
+        ...(openrouterClient
+          ? [{ model: openrouterClient("nvidia/nemotron-3-ultra-550b-a55b:free"), modelName: "nemotron-3-ultra", isFallback: true }]
+          : []),
+        ...(openrouterClient
+          ? [{ model: openrouterClient("google/gemma-4-26b-a4b-it:free"), modelName: "gemma-4-26b", isFallback: true }]
+          : []),
+        ...(openrouterClient
+          ? [{ model: openrouterClient("google/gemma-4-31b-it:free"), modelName: "gemma-4-31b-it", isFallback: true }]
+          : []),
+        { model: googleClient("gemini-3.6-flash"), modelName: "gemini-3.6-flash", isFallback: true },
+      ];
+    } else {
+      // Expert Mode: user selected specific model & provider
+      const resolved = resolveAIModel({
+        providerId: expertProviderId as AIProviderId,
+        modelId: expertModelId,
+        mode: "expert",
+        userKeys,
+      });
+      candidateConfigs = [
+        { model: resolved.model, modelName: resolved.modelName, isFallback: false }
+      ];
+      // If user selected Gemini 3.7 in expert mode, also offer Gemini 3.6 fallback
+      if (resolved.modelName === "gemini-3.7-flash" && resolved.provider === "google") {
+        candidateConfigs.push({
+          model: googleClient("gemini-3.6-flash"),
+          modelName: "gemini-3.6-flash",
+          isFallback: true,
+        });
+      }
+    }
+
+    // 7. Probe and establish live resilient stream
+    let activeStream: ReadableStream<Uint8Array> | null = null;
+    let activeModelName = candidateConfigs[0]?.modelName || "AI Model";
+    let wasFallbackUsed = false;
+    let openrouterQuotaExhausted = false;
+
+    for (let i = 0; i < candidateConfigs.length; i++) {
+      const candidate = candidateConfigs[i];
+      console.log(`[Stream Attempt ${i + 1}/${candidateConfigs.length}] Requesting ${candidate.modelName}...`);
+
+      try {
+        const streamResult = streamText({
+          model: candidate.model,
+          system: systemPrompt,
+          prompt: userPrompt,
+          temperature: typeof temperature === "number" ? temperature : 0.7,
+          maxRetries: 0,
+          abortSignal: AbortSignal.timeout(4500), // Rapid 4.5s check per candidate
+        });
+
+        // Test the first chunk to ensure stream connection is valid and not 503
+        const [probeStream, liveStream] = streamResult.textStream.tee();
+        const reader = probeStream.getReader();
+        const firstChunk = await reader.read();
+        reader.releaseLock();
+
+        if (firstChunk.value !== undefined) {
+          activeModelName = candidate.modelName;
+          wasFallbackUsed = candidate.isFallback;
+          console.log(`Stream established with ${candidate.modelName} (fallback: ${candidate.isFallback})`);
+
+          // Transform and pipe the live stream while tracking full output for onFinish callback
+          let accumulatedText = "";
+          const encoder = new TextEncoder();
+          const transformedStream = new ReadableStream<Uint8Array>({
+            async start(controller) {
+              try {
+                const liveReader = liveStream.getReader();
+                while (true) {
+                  const { done, value } = await liveReader.read();
+                  if (done) break;
+                  if (value) {
+                    accumulatedText += value;
+                    controller.enqueue(encoder.encode(value));
+                  }
+                }
+                controller.close();
+                await handleFinish(accumulatedText, activeModelName, wasFallbackUsed);
+              } catch (err: any) {
+                console.error("Live streaming consumer error:", err);
+                controller.error(err);
+              }
+            },
+          });
+
+          activeStream = transformedStream;
+          break;
+        }
+      } catch (candidateErr: any) {
+        const status = candidateErr?.statusCode;
+        const isOpenRouter429 = status === 429 && openrouterKey !== undefined;
+        const isOpenRouter403 = status === 403 && openrouterKey !== undefined;
+        console.warn(
+          `Model ${candidate.modelName} unavailable (status ${status || "?"}: ${candidateErr?.message || "high demand"}). ${isOpenRouter429 || isOpenRouter403 ? "OpenRouter quota exhausted, skipping remaining OR candidates." : "Cascading to next candidate..."}`
+        );
+        // If OpenRouter returned 429 (rate limit) or 403 (model restricted), all OR models will fail the same way.
+        // Skip the remaining OpenRouter candidates to avoid wasting time and show the correct user-facing message.
+        if (isOpenRouter429 || isOpenRouter403) {
+          openrouterQuotaExhausted = true;
+          // Skip to the next non-OpenRouter candidate (Google direct)
+          // Find the index of the last OR candidate in the list and jump past it
+          for (let j = i + 1; j < candidateConfigs.length; j++) {
+            const nextName = candidateConfigs[j].modelName;
+            if (
+              nextName === "gemini-3.6-flash" ||
+              nextName === "gemini-3.7-flash" ||
+              nextName === "gemma-4-31b-it"
+            ) {
+              i = j - 1; // -1 because the loop's i++ will increment
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (!activeStream) {
+      if (openrouterQuotaExhausted) {
+        return new NextResponse(
+          "Tu cuota gratuita de OpenRouter (50 requests/día) se agotó. Agrega créditos en https://openrouter.ai/credits o vuelve mañana.",
+          { status: 429 }
+        );
+      }
+      return new NextResponse(
+        "Servidores de IA temporalmente saturados. Por favor intenta de nuevo en unos momentos.",
+        { status: 503 }
+      );
+    }
+
+    return new Response(activeStream, {
       headers: {
-        "X-AI-Model": modelName,
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "Transfer-Encoding": "chunked",
+        "X-AI-Model": activeModelName,
       },
     });
   } catch (error: any) {
-    console.error("AI Generation Error:", error);
+    console.error("AI Generation Fatal Error:", error);
     return new NextResponse(
       error.message || "Error al conectar con el proveedor de IA.", 
       { status: 422 }

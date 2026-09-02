@@ -41,7 +41,8 @@ import {
   AI_PROVIDERS, 
   AIProviderId, 
   AIModelDefinition, 
-  DEFAULT_SPEED_MODEL 
+  DEFAULT_SPEED_MODEL,
+  getModelDescription 
 } from "@/utils/ai-models";
 import { useLanguage } from "@/components/providers/language-provider";
 
@@ -74,7 +75,7 @@ export function ModelSelectionDrawer({
   configuredProviders = [],
   onApply,
 }: ModelSelectionDrawerProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"models" | "parameters">("models");
   const [searchQuery, setSearchQuery] = useState("");
@@ -358,7 +359,7 @@ export function ModelSelectionDrawer({
                             </div>
 
                             <p className="text-xs text-zinc-400 leading-relaxed line-clamp-2">
-                              {m.description}
+                              {getModelDescription(m.id, language)}
                             </p>
 
                             <div className="flex items-center gap-3 pt-1 text-[11px] text-zinc-500 font-mono">
@@ -385,13 +386,15 @@ export function ModelSelectionDrawer({
                 {filteredModels.length === 0 && (
                   <div className="py-16 text-center space-y-2">
                     <Search className="w-8 h-8 text-zinc-600 mx-auto" />
-                    <p className="text-sm text-zinc-400">No se encontraron modelos para tu búsqueda.</p>
+                    <p className="text-sm text-zinc-400">
+                      {t.workspace.noModelsFound || "No se encontraron modelos para tu búsqueda."}
+                    </p>
                     <button
                       type="button"
                       onClick={() => { setSearchQuery(""); setActiveFilter("all"); }}
                       className="text-xs text-cyan-400 hover:underline cursor-pointer"
                     >
-                      Restablecer filtros
+                      {t.workspace.filterAll || "Todos"}
                     </button>
                   </div>
                 )}
@@ -511,20 +514,20 @@ export function ModelSelectionDrawer({
 
             <div className="text-center space-y-1.5">
               <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/30 text-amber-300 inline-block">
-                Modelo Pro / BYOK Requerido
+                {t.workspace.proModelRequiredBadge || "Modelo Pro / BYOK Requerido"}
               </span>
               <DialogTitle className="text-lg font-bold text-white">
-                Clave API Requerida
+                {t.workspace.apiKeyRequiredTitle || "Clave API Requerida"}
               </DialogTitle>
               <DialogDescription className="text-xs text-zinc-300 leading-relaxed pt-1">
-                Has seleccionado <strong className="text-white">{selectedModelObj?.name || currentModel}</strong> ({AI_PROVIDERS[currentProvider]?.name || currentProvider}). Este modelo de vanguardia requiere que ingreses tu propia clave API en los Ajustes de Vellura.
+                {selectedModelObj?.name || currentModel} ({AI_PROVIDERS[currentProvider]?.name || currentProvider}) - {t.workspace.byokErrorWarning || "Este modelo requiere que configures tu propia clave API."}
               </DialogDescription>
             </div>
           </DialogHeader>
 
           <div className="p-3 bg-zinc-900/60 rounded-xl border border-white/5 space-y-1.5 my-2">
             <p className="text-[11px] text-zinc-400 leading-relaxed">
-              💡 Tus claves se guardan de forma encriptada y nunca se comparten. Puedes obtener tu clave en la consola oficial del proveedor.
+              {t.workspace.apiKeyRequiredNotice || "💡 Tus claves se guardan de forma encriptada y nunca se comparten."}
             </p>
           </div>
 
@@ -534,7 +537,7 @@ export function ModelSelectionDrawer({
               onClick={handleGoToSettings}
               className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.3)] active:scale-98 transition-all"
             >
-              <span>Ir a Ajustes para Añadir Clave</span>
+              <span>{t.workspace.goToSettingsBtn || "Ir a Ajustes para Añadir Clave"}</span>
               <ArrowRight className="w-4 h-4" />
             </Button>
 
@@ -544,7 +547,7 @@ export function ModelSelectionDrawer({
               onClick={handleSelectFreeAndApply}
               className="w-full border-white/10 hover:bg-white/5 text-zinc-300 text-xs py-2 rounded-xl cursor-pointer"
             >
-              ⚡ Usar Modelo Gratuito (Gemini 3.7 Flash)
+              {t.workspace.useFreeModelBtn || "⚡ Usar Modelo Gratuito (Nemotron 3.5 Lightning)"}
             </Button>
 
             <button
@@ -555,7 +558,7 @@ export function ModelSelectionDrawer({
               }}
               className="text-[11px] text-zinc-500 hover:text-zinc-300 text-center py-1 transition-colors cursor-pointer"
             >
-              Continuar y configurar clave más tarde
+              {t.workspace.continueWithoutKeyBtn || "Continuar y configurar clave más tarde"}
             </button>
           </DialogFooter>
         </DialogContent>

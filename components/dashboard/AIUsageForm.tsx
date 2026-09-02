@@ -43,10 +43,8 @@ export function AIUsageForm({ dailyLimit, hasBYOK }: { dailyLimit: number; hasBY
       {/* Daily Limits Section */}
       <div className="flex flex-col space-y-3 relative z-10">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amethyst-glow/10 flex items-center justify-center">
-              <Zap className="w-4 h-4 text-amethyst-glow" />
-            </div>
+          <div className="flex items-center gap-3">
+            <Zap className="w-5 h-5 text-amethyst-glow shrink-0" />
             <div>
               <h2 className="text-base font-semibold text-white leading-tight">{t.settings.dailyLimits}</h2>
               <p className="text-xs text-zinc-400 mt-0.5">{t.settings.dailyLimitsDesc}</p>

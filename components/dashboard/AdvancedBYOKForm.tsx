@@ -92,7 +92,8 @@ export function AdvancedBYOKForm({ initialKeys = {} }: { initialKeys?: Record<st
           ♾️
         </div>
         <p className="leading-relaxed text-xs text-zinc-300">
-          <strong className="text-cyan-300 font-semibold">Generaciones 100% Ilimitadas:</strong> Al conectar tus claves API, tus documentos generados en Modo Experto no consumen tu límite diario.
+          <strong className="text-cyan-300 font-semibold">{t.settings.byokUnlimitedTitle || "Generaciones 100% Ilimitadas:"}</strong>{" "}
+          {t.settings.byokUnlimitedDesc || "Al conectar tus claves API, tus documentos generados en Modo Experto no consumen tu límite diario."}
         </p>
       </div>
 

@@ -15,28 +15,31 @@ export function resolveAIModel(params: ProviderResolutionParams) {
   const { providerId, modelId, mode = "speed", userKeys = {}, systemGoogleKey } = params;
 
   // 1. STANDARD NON-EXPERT MODE (Zero cost system models using system key)
-  if (mode === "speed") {
-    const googleClient = createGoogleGenerativeAI({
-      apiKey: systemGoogleKey || process.env.GOOGLE_GENERATIVE_AI_API_KEY || userKeys.google,
-    });
-    return {
-      model: googleClient(DEFAULT_SPEED_MODEL),
-      modelName: DEFAULT_SPEED_MODEL,
-      provider: "google" as AIProviderId,
-    };
-  }
+    if (mode === "speed") {
+      const googleApiKey = userKeys.google || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      if (!googleApiKey) {
+        throw new Error("No Google AI API key available. Speed mode requires a Google key as last resort.");
+      }
+      const googleClient = createGoogleGenerativeAI({ apiKey: googleApiKey });
+      return {
+        model: googleClient(DEFAULT_SPEED_MODEL),
+        modelName: DEFAULT_SPEED_MODEL,
+        provider: "google" as AIProviderId,
+      };
+    }
 
-  if (mode === "reasoning") {
-    // Default Reasoning: gemma-4-31b-it on Google AI Studio
-    const googleClient = createGoogleGenerativeAI({
-      apiKey: systemGoogleKey || process.env.GOOGLE_GENERATIVE_AI_API_KEY || userKeys.google,
-    });
-    return {
-      model: googleClient(DEFAULT_REASONING_MODEL),
-      modelName: DEFAULT_REASONING_MODEL,
-      provider: "google" as AIProviderId,
-    };
-  }
+    if (mode === "reasoning") {
+      const googleApiKey = userKeys.google || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      if (!googleApiKey) {
+        throw new Error("No Google AI API key available. Reasoning mode requires a Google key as last resort.");
+      }
+      const googleClient = createGoogleGenerativeAI({ apiKey: googleApiKey });
+      return {
+        model: googleClient(DEFAULT_REASONING_MODEL),
+        modelName: DEFAULT_REASONING_MODEL,
+        provider: "google" as AIProviderId,
+      };
+    }
 
   // 2. EXPERT MODE / BYOK
   const targetModel = AI_MODELS.find((m) => m.id === modelId);
@@ -87,13 +90,14 @@ export function resolveAIModel(params: ProviderResolutionParams) {
     }
 
     case "openrouter": {
-      const apiKey = userKeys.openrouter || process.env.OPENROUTER_API_KEY;
-      if (!apiKey && !targetModel?.isFree) {
-        throw new Error("OpenRouter API key is required for premium OpenRouter models. Please add your key in Settings > Advanced.");
-      }
-      const openrouterClient = createOpenAI({
-        baseURL: "https://openrouter.ai/api/v1",
-        apiKey: apiKey || "openrouter-free-access",
+          const hasApiKey = !!(userKeys.openrouter || process.env.OPENROUTER_API_KEY);
+          if (!hasApiKey && !targetModel?.isFree) {
+            throw new Error("OpenRouter API key is required for premium OpenRouter models. Please add your key in Settings > Advanced.");
+          }
+          const effectiveKey = userKeys.openrouter || process.env.OPENROUTER_API_KEY || "";
+          const openrouterClient = createOpenAI({
+            baseURL: "https://openrouter.ai/api/v1",
+            apiKey: effectiveKey,
         headers: {
           "HTTP-Referer": "https://vellura.ai",
           "X-Title": "Vellura AI Workspace",
