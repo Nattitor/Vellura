@@ -193,6 +193,18 @@ export function Topbar({ userEmail }: { userEmail: string; dailyLimit?: number }
                   <span>{t.nav.settings}</span>
                 </Link>
 
+                <button 
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent("open-onboarding-wizard"));
+                    setIsOpen(false);
+                  }} 
+                  className="w-full hover:bg-white/10 text-zinc-200 hover:text-white transition-colors cursor-pointer py-2 px-2.5 text-xs rounded-lg flex items-center gap-2 text-left"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amethyst-glow" />
+                  <span>{t.onboarding?.modalBadge || "Quick Setup Guide"}</span>
+                </button>
+
                 <div className="h-px bg-white/10 my-1" />
 
                 <button 

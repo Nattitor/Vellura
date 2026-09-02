@@ -19,8 +19,8 @@ export function ProfileForm({
   outputLanguage?: string; 
 }) {
   const { language, outputLanguage: contextOutputLang, t } = useLanguage();
-  const activeTargetLang = contextOutputLang || outputLanguage || "English";
-  const localizedTargetLangName = languageLabels[language]?.[activeTargetLang] || activeTargetLang;
+  const pageLanguage = language || "Spanish";
+  const localizedTargetLangName = languageLabels[language]?.[pageLanguage] || pageLanguage;
 
   const { avatarUrl, uploadAvatar, removeAvatar } = useAvatar();
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
@@ -71,8 +71,8 @@ export function ProfileForm({
     setIsParsing(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("autoTranslate", autoTranslate.toString());
-    formData.append("targetLanguage", activeTargetLang);
+    formData.append("autoTranslate", autoTranslate ? "true" : "false");
+    formData.append("targetLanguage", pageLanguage);
 
     try {
       const response = await fetch("/api/parse-resume", {
@@ -90,11 +90,15 @@ export function ProfileForm({
         setResume(data.resumeText);
         setHighlightPulse(true);
         setTimeout(() => setHighlightPulse(false), 3000);
-        toast.success(t.settings.cvUploaded);
+        if (data.warning) {
+          toast.info(data.warning, { duration: 6000 });
+        } else {
+          toast.success(t.settings.cvUploaded || "CV subido y estructurado con éxito.");
+        }
       }
     } catch (err: any) {
       console.error("Resume parsing error:", err);
-      toast.error(err.message || t.settings.cvError);
+      toast.error(err.message || t.settings.cvError || "Error al procesar el currículum");
     } finally {
       setIsParsing(false);
     }
