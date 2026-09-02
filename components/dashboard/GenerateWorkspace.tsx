@@ -52,6 +52,7 @@ import { useQuota } from "@/components/providers/quota-provider";
 import { AI_MODELS, AIProviderId, DEFAULT_SPEED_MODEL, AI_PROVIDERS } from "@/utils/ai-models";
 import { ModelSelectionDrawer } from "@/components/dashboard/ModelSelectionDrawer";
 import { stripMetadataComments, extractCompanyAndRole } from "@/utils/extract-company";
+import { getModelDisplayInfo } from "@/utils/model-display";
 
 export function GenerateWorkspace({
   configuredProviders = [],
@@ -69,6 +70,10 @@ export function GenerateWorkspace({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [apiError, setApiError] = useState<string | null>(null);
+  // Populated from the `X-AI-Model` response header once the backend has
+  // established a live stream, so the UI reflects the model actually used
+  // instead of assuming the first candidate in the cascade always wins.
+  const [actualModel, setActualModel] = useState<string | null>(null);
 
   // Expert Mode State
   const [isExpertMode, setIsExpertMode] = useState(false);
@@ -128,6 +133,16 @@ export function GenerateWorkspace({
       customDirectives: isExpertMode ? customDirectives : undefined,
     },
     streamProtocol: "text",
+    // Intercept the raw fetch response to read the `X-AI-Model` header the
+    // backend attaches once it establishes a live stream with a candidate.
+    fetch: async (input, init) => {
+      const response = await fetch(input, init);
+      const usedModel = response.headers.get("X-AI-Model");
+      if (usedModel) {
+        setActualModel(usedModel);
+      }
+      return response;
+    },
     onFinish: (_prompt, comp) => {
       const cleanComp = comp ? comp.replace(/<!--[\s\S]*?-->/g, "").trim() : "";
       if (!cleanComp || cleanComp.length < 150) {
@@ -171,7 +186,8 @@ export function GenerateWorkspace({
     }
 
     setApiError(null);
-    
+    setActualModel(null);
+
     // Smooth scroll to output on mobile
     if (window.innerWidth < 1024 && outputRef.current) {
       const y = outputRef.current.getBoundingClientRect().top + window.scrollY - 20;
@@ -296,12 +312,17 @@ export function GenerateWorkspace({
   }, [jobDescription, completion, cleanCompletion]);
 
   const activeModelDisplayName = useMemo(() => {
+    // Prefer the model the backend actually used (from X-AI-Model), which may
+    // differ from the requested one if the cascade fell back to another model.
+    if (actualModel) {
+      return getModelDisplayInfo(actualModel).label;
+    }
     if (isExpertMode) {
       const found = AI_MODELS.find((m) => m.id === expertModel);
       return found ? found.name : expertModel;
     }
-    return modelPref === "speed" ? "Nemotron 3.5 Lightning" : "Nemotron 3 Ultra 550B";
-  }, [isExpertMode, expertModel, modelPref]);
+    return modelPref === "speed" ? t.workspace.modelSpeedLabel : t.workspace.modelReasoningLabel;
+  }, [actualModel, isExpertMode, expertModel, modelPref, t]);
 
   return (
     <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-stretch gap-6 lg:h-[calc(100vh-7.5rem)] lg:min-h-[640px]">
