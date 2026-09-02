@@ -5,6 +5,7 @@ import { generateText } from "ai";
 import { NextResponse } from "next/server";
 import mammoth from "mammoth";
 import { extractText } from "unpdf";
+import { parseStoredUserKeys } from "@/utils/byok";
 
 export const maxDuration = 60; // Allow sufficient time for AI processing
 
@@ -196,18 +197,8 @@ export async function POST(req: Request) {
       .eq("id", user.id)
       .single();
 
-    let userKeys: Record<string, string> = {};
-    if (profile?.byok_key) {
-      try {
-        if (profile.byok_key.trim().startsWith("{")) {
-          userKeys = JSON.parse(profile.byok_key);
-        } else {
-          userKeys = { google: profile.byok_key };
-        }
-      } catch {
-        userKeys = { google: profile.byok_key };
-      }
-    }
+    // Decrypt and parse user BYOK keys (profiles.byok_key is stored encrypted)
+    const userKeys = parseStoredUserKeys(profile?.byok_key);
 
     const autoTranslate = formData.get("autoTranslate") === "true";
     const targetLanguage = (formData.get("targetLanguage") as string) || "Spanish";

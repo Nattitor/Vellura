@@ -1,12 +1,12 @@
 import { createClient } from "@/utils/supabase/server";
 import { GenerateWorkspace } from "@/components/dashboard/GenerateWorkspace";
 import { OnboardingWizard } from "@/components/dashboard/OnboardingWizard";
+import { getConfiguredProviders } from "@/utils/byok";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
-  let userKeys: Record<string, string> = {};
+
   let profile: any = null;
 
   if (user) {
@@ -15,23 +15,13 @@ export default async function DashboardPage() {
       .select("byok_key, resume_text, output_language, avatar_url")
       .eq("id", user.id)
       .single();
-      
-    profile = data;
 
-    if (profile?.byok_key) {
-      try {
-        if (profile.byok_key.trim().startsWith("{")) {
-          userKeys = JSON.parse(profile.byok_key);
-        } else {
-          userKeys = { google: profile.byok_key };
-        }
-      } catch (e) {
-        userKeys = { google: profile.byok_key };
-      }
-    }
+    profile = data;
   }
 
-  const configuredProviders = Object.keys(userKeys).filter(k => !!userKeys[k]?.trim());
+  // Only the list of configured providers is derived here; the actual
+  // (encrypted) key values in profile.byok_key never leave the server.
+  const configuredProviders = getConfiguredProviders(profile?.byok_key);
   const googleAvatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
 
   return (

@@ -63,7 +63,17 @@ OPENROUTER_API_KEY=sk-or-v1-your-key
 OPENAI_API_KEY=sk-proj-...
 ANTHROPIC_API_KEY=sk-ant-...
 DEEPSEEK_API_KEY=sk-...
+
+# BYOK encryption (required) — encrypts user-provided API keys at rest.
+# Generate with: openssl rand -base64 32
+BYOK_ENCRYPTION_KEY=your-base64-32-byte-key
 ```
+
+> **BYOK encryption:** All user-provided provider keys (`profiles.byok_key`) are encrypted with AES-256-GCM before being stored, using `BYOK_ENCRYPTION_KEY` as the master key. Generate one with `openssl rand -base64 32` and keep it secret — losing it makes existing stored keys unrecoverable, and rotating it requires re-encrypting the column. If you have existing rows with plaintext keys from before this was introduced, run the one-time migration once `BYOK_ENCRYPTION_KEY` is set:
+> ```bash
+> node --env-file=.env.local scripts/migrate-byok-encryption.mjs
+> ```
+> This script additionally requires a temporary `SUPABASE_SERVICE_ROLE_KEY` (Project Settings > API in Supabase) to bypass RLS across all users. Remove it from your environment again once the migration finishes — it is never needed by the running app.
 
 > **Note on OpenRouter free tier:** All free OpenRouter models share a single 50 requests/day per-account quota. For production scale, load $5 USD of credit on the OpenRouter account to unlock ~5000 free-model generations.
 

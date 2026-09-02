@@ -8,6 +8,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { AIProviderId, DEFAULT_SPEED_MODEL } from "@/utils/ai-models";
 import { extractCompanyAndRole } from "@/utils/extract-company";
+import { parseStoredUserKeys } from "@/utils/byok";
 
 export async function POST(req: Request) {
   try {
@@ -56,19 +57,8 @@ export async function POST(req: Request) {
       });
     }
 
-    // Parse user BYOK keys
-    let userKeys: Record<string, string> = {};
-    if (profile?.byok_key) {
-      try {
-        if (profile.byok_key.trim().startsWith("{")) {
-          userKeys = JSON.parse(profile.byok_key);
-        } else {
-          userKeys = { google: profile.byok_key };
-        }
-      } catch {
-        userKeys = { google: profile.byok_key };
-      }
-    }
+    // Decrypt and parse user BYOK keys (profiles.byok_key is stored encrypted)
+    const userKeys = parseStoredUserKeys(profile?.byok_key);
 
     const today = new Date().toISOString().split('T')[0];
     const currentLimit = getEffectiveDailyLimit(profile);

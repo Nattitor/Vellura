@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
+import { parseStoredUserKeys, encryptUserKeys } from "@/utils/byok";
 
 export async function updateAvatar(avatarUrl: string | null) {
   const supabase = await createClient();
@@ -97,9 +98,14 @@ export async function updateBYOK(key: string) {
     return { error: "Not authenticated" };
   }
 
+  // Legacy single-key form (AIUsageForm): normalize to the same encrypted
+  // provider->key map shape used everywhere else.
+  const trimmed = key.trim();
+  const encrypted = trimmed ? encryptUserKeys({ google: trimmed }) : "";
+
   const { error } = await supabase
     .from("profiles")
-    .update({ byok_key: key })
+    .update({ byok_key: encrypted })
     .eq("id", user.id);
 
   if (error) {
@@ -120,25 +126,14 @@ export async function updateProviderKey(provider: string, key: string) {
     return { error: "Not authenticated" };
   }
 
-  // Fetch current byok_key
+  // Fetch current byok_key (encrypted at rest)
   const { data: profile } = await supabase
     .from("profiles")
     .select("byok_key")
     .eq("id", user.id)
     .single();
 
-  let keys: Record<string, string> = {};
-  if (profile?.byok_key) {
-    try {
-      if (profile.byok_key.trim().startsWith("{")) {
-        keys = JSON.parse(profile.byok_key);
-      } else {
-        keys = { google: profile.byok_key };
-      }
-    } catch {
-      keys = { google: profile.byok_key };
-    }
-  }
+  const keys = parseStoredUserKeys(profile?.byok_key);
 
   if (key.trim() === "") {
     delete keys[provider];
@@ -146,18 +141,21 @@ export async function updateProviderKey(provider: string, key: string) {
     keys[provider] = key.trim();
   }
 
-  const serialized = Object.keys(keys).length > 0 ? JSON.stringify(keys) : "";
+  const encrypted = encryptUserKeys(keys);
 
   const { error } = await supabase
     .from("profiles")
-    .update({ byok_key: serialized })
+    .update({ byok_key: encrypted })
     .eq("id", user.id);
 
   if (error) {
     return { error: error.message };
   }
 
-  return { success: true, keys };
+  // Security: never return raw key values to the client. Only the list of
+  // configured provider IDs is safe to send back over the wire.
+  const configuredProviders = Object.keys(keys).filter((k) => !!keys[k]?.trim());
+  return { success: true, configuredProviders };
 }
 
 export async function getProfile() {

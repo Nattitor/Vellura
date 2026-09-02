@@ -9,9 +9,14 @@ import { AI_PROVIDERS, AIProviderId } from "@/utils/ai-models";
 import { useLanguage } from "@/components/providers/language-provider";
 import { toast } from "sonner";
 
-export function AdvancedBYOKForm({ initialKeys = {} }: { initialKeys?: Record<string, string> }) {
+export function AdvancedBYOKForm({ initialConfiguredProviders = [] }: { initialConfiguredProviders?: string[] }) {
   const { t } = useLanguage();
-  const [keys, setKeys] = useState<Record<string, string>>(initialKeys);
+  // `keys` only ever tracks WHICH providers are connected (boolean flags).
+  // Actual key values never reach this client component; they are entered
+  // once by the user, sent to the Server Action, and encrypted server-side.
+  const [keys, setKeys] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(initialConfiguredProviders.map((p) => [p, true]))
+  );
   const [inputs, setInputs] = useState<Record<string, string>>({});
   const [activeProvider, setActiveProvider] = useState<AIProviderId>("google");
   const [isPending, startTransition] = useTransition();
@@ -42,7 +47,7 @@ export function AdvancedBYOKForm({ initialKeys = {} }: { initialKeys?: Record<st
       if (result.error) {
         toast.error(`Error: ${result.error}`);
       } else {
-        setKeys((prev) => ({ ...prev, [provider]: keyVal }));
+        setKeys((prev) => ({ ...prev, [provider]: true }));
         setInputs((prev) => ({ ...prev, [provider]: "" }));
         toast.success(`${AI_PROVIDERS[provider].name} API Key connected securely!`);
       }

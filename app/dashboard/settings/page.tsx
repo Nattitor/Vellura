@@ -4,6 +4,7 @@ import { SettingsView } from "@/components/dashboard/SettingsView";
 import { redirect } from "next/navigation";
 import { SettingsHeader } from "@/components/dashboard/SettingsHeader";
 import { getEffectiveDailyLimit } from "@/utils/limits";
+import { getConfiguredProviders } from "@/utils/byok";
 
 export default async function SettingsPage() {
   const { data: profile, error } = await getProfile();
@@ -14,25 +15,15 @@ export default async function SettingsPage() {
 
   const authDetails = await getUserAuthDetails();
 
-  // Parse keys
-  let userKeys: Record<string, string> = {};
-  if (profile?.byok_key) {
-    try {
-      if (profile.byok_key.trim().startsWith("{")) {
-        userKeys = JSON.parse(profile.byok_key);
-      } else {
-        userKeys = { google: profile.byok_key };
-      }
-    } catch {
-      userKeys = { google: profile.byok_key };
-    }
-  }
+  // Only the list of configured providers ever leaves the server; the actual
+  // (encrypted) key values in profile.byok_key are never sent to the client.
+  const configuredProviders = getConfiguredProviders(profile?.byok_key);
 
   // Calculate granular profile completion (4 pillars: Avatar 25%, Master Resume 40%, Preferences 20%, BYOK 15%)
   const hasAvatar = !!profile?.avatar_url;
   const hasResume = !!profile?.resume_text && profile.resume_text.trim().length > 20;
   const hasPreferences = !!profile?.ui_language || !!profile?.output_language;
-  const hasBYOK = Object.keys(userKeys).length > 0;
+  const hasBYOK = configuredProviders.length > 0;
 
   const completionPercentage =
     (hasAvatar ? 25 : 0) +
@@ -51,7 +42,7 @@ export default async function SettingsPage() {
         outputLanguage={profile?.output_language || "English"}
         dailyLimit={effectiveLimit}
         hasBYOK={hasBYOK}
-        userKeys={userKeys}
+        configuredProviders={configuredProviders}
         authDetails={authDetails}
       />
     </div>

@@ -24,7 +24,7 @@ interface SettingsViewProps {
   outputLanguage: string;
   dailyLimit: number;
   hasBYOK: boolean;
-  userKeys: Record<string, string>;
+  configuredProviders: string[];
   authDetails?: AuthDetails | null;
 }
 
@@ -33,7 +33,7 @@ export function SettingsView({
   outputLanguage,
   dailyLimit,
   hasBYOK,
-  userKeys,
+  configuredProviders,
   authDetails,
 }: SettingsViewProps) {
   const { t } = useLanguage();
@@ -92,7 +92,7 @@ export function SettingsView({
         >
           <Cpu className="w-4 h-4 text-cyan-400" />
           <span>{t.settings.advancedTab || "Avanzado & API Keys (BYOK)"}</span>
-          {Object.keys(userKeys).length > 0 && (
+          {configuredProviders.length > 0 && (
             <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
           )}
         </button>
@@ -126,7 +126,7 @@ export function SettingsView({
         </div>
       ) : (
         <div className="max-w-4xl animate-in fade-in duration-200">
-          <AdvancedBYOKForm initialKeys={userKeys} />
+          <AdvancedBYOKForm initialConfiguredProviders={configuredProviders} />
         </div>
       )}
     </div>
