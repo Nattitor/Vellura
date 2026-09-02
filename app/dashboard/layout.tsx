@@ -25,16 +25,23 @@ export default async function DashboardLayout({
   // Fetch the user's profile to get daily limit, last generation date, and ui_language
   const { data: profile } = await supabase
     .from("profiles")
-    .select("daily_limit, last_generation_date, ui_language, byok_key")
+    .select("*")
     .eq("id", user.id)
     .single();
 
-  const initialLang = (profile?.ui_language as LanguageType) || "English";
+  const initialLang = (profile?.ui_language as LanguageType) || "Spanish";
   const effectiveLimit = getEffectiveDailyLimit(profile);
+  
+  // Extract cloud avatar from profile or user metadata (Google OAuth picture)
+  const cloudAvatar = 
+    (profile as { avatar_url?: string | null } | null)?.avatar_url || 
+    user.user_metadata?.avatar_url || 
+    user.user_metadata?.picture || 
+    null;
 
   return (
     <LanguageProvider initialLanguage={initialLang}>
-      <AvatarProvider>
+      <AvatarProvider initialAvatar={cloudAvatar}>
         <QuotaProvider initialLimit={effectiveLimit}>
           <div className="min-h-screen bg-deep-void selection:bg-amethyst-glow/30 selection:text-white flex flex-col">
             <Topbar userEmail={user.email || "User"} />
