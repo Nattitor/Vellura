@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useCompletion } from "@ai-sdk/react";
 import ReactMarkdown from "react-markdown";
@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Copy, 
   Check, 
+  Download,
   Sparkles, 
   Loader2, 
   Zap, 
@@ -50,7 +51,7 @@ import { useLanguage } from "@/components/providers/language-provider";
 import { useQuota } from "@/components/providers/quota-provider";
 import { AI_MODELS, AIProviderId, DEFAULT_SPEED_MODEL, AI_PROVIDERS } from "@/utils/ai-models";
 import { ModelSelectionDrawer } from "@/components/dashboard/ModelSelectionDrawer";
-import { stripMetadataComments } from "@/utils/extract-company";
+import { stripMetadataComments, extractCompanyAndRole } from "@/utils/extract-company";
 
 export function GenerateWorkspace({
   configuredProviders = [],
@@ -198,12 +199,63 @@ export function GenerateWorkspace({
     }
   }, [isLoading]);
 
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+
   const handleCopy = () => {
     if (!completion || activeError) return;
     const cleanContent = completion.replace(/<!--[\s\S]*?-->/g, "").trim();
     navigator.clipboard.writeText(cleanContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!cleanCompletion) return;
+    try {
+      setIsDownloadingPDF(true);
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF();
+
+      let plainText = cleanCompletion
+        .replace(/<!--[\s\S]*?-->/g, "")
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .replace(/\*(.*?)\*/g, "$1")
+        .replace(/#{1,6}\s?/g, "")
+        .trim();
+
+      doc.setFont("times", "normal");
+      doc.setFontSize(11);
+
+      const margin = 20;
+      const pdfWidth = doc.internal.pageSize.getWidth();
+      const maxLineWidth = pdfWidth - margin * 2;
+
+      const lines = doc.splitTextToSize(plainText, maxLineWidth);
+
+      let y = 20;
+      const lineHeight = 7;
+
+      for (let i = 0; i < lines.length; i++) {
+        if (y > doc.internal.pageSize.getHeight() - margin) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(lines[i], margin, y);
+        y += lineHeight;
+      }
+
+      const cleanTarget = (detectedTarget || "cover-letter")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .slice(0, 35);
+
+      doc.save(`vellura-${cleanTarget}.pdf`);
+      toast.success("PDF exported successfully!");
+    } catch (error) {
+      toast.error("Failed to generate PDF");
+    } finally {
+      setIsDownloadingPDF(false);
+    }
   };
 
   const handleApplyDrawerSettings = (params: {
@@ -232,6 +284,24 @@ export function GenerateWorkspace({
   const detectedStreamError = parseErrorInCompletion(completion);
   const activeError = apiError || detectedStreamError;
   const cleanCompletion = stripMetadataComments(completion);
+
+  const generatedWordCount = useMemo(() => {
+    if (!cleanCompletion) return 0;
+    return cleanCompletion.split(/\s+/).filter(Boolean).length;
+  }, [cleanCompletion]);
+
+  const detectedTarget = useMemo(() => {
+    if (!cleanCompletion && !jobDescription) return "";
+    return extractCompanyAndRole(jobDescription, completion);
+  }, [jobDescription, completion, cleanCompletion]);
+
+  const activeModelDisplayName = useMemo(() => {
+    if (isExpertMode) {
+      const found = AI_MODELS.find((m) => m.id === expertModel);
+      return found ? found.name : expertModel;
+    }
+    return modelPref === "speed" ? "Nemotron 3.5 Lightning" : "Nemotron 3 Ultra 550B";
+  }, [isExpertMode, expertModel, modelPref]);
 
   return (
     <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-stretch gap-6 lg:h-[calc(100vh-7.5rem)] lg:min-h-[640px]">
@@ -312,7 +382,7 @@ export function GenerateWorkspace({
                     onClick={() => setIsDrawerOpen(true)}
                     className="text-xs text-zinc-400 hover:text-cyan-300 flex items-center gap-0.5 cursor-pointer font-medium"
                   >
-                    <span>Explorar catálogo</span>
+                    <span>{t.workspace.exploreCatalog || "Explorar catálogo"}</span>
                     <ChevronRight className="w-3 h-3" />
                   </button>
                 </div>
@@ -419,8 +489,8 @@ export function GenerateWorkspace({
 
               {/* Word & Character Counter Bottom Bar */}
               <div className="flex items-center justify-between text-[11px] text-zinc-500 shrink-0 pt-1 font-mono px-1">
-                <span>{wordCount} palabras</span>
-                <span>{charCount} caracteres</span>
+                <span>{wordCount} {wordCount === 1 ? (t.workspace.word || "palabra") : (t.workspace.words || "palabras")}</span>
+                <span>{charCount} {charCount === 1 ? (t.workspace.character || "carácter") : (t.workspace.characters || "caracteres")}</span>
               </div>
             </div>
 
@@ -457,39 +527,72 @@ export function GenerateWorkspace({
         {/* Subtle dynamic background glow */}
         <div className="absolute top-0 right-0 -mr-24 -mt-24 w-96 h-96 bg-amethyst-glow/5 rounded-full blur-3xl pointer-events-none group-hover:bg-amethyst-glow/10 transition-colors duration-1000" />
         
-        {/* Glassmorphic Top Bar with Generous Visual Clearance */}
-        <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-zinc-950/95 via-zinc-950/80 to-transparent backdrop-blur-md z-20 flex justify-between items-center border-b border-white/5">
-          <span className="text-xs text-zinc-300 font-medium px-3 py-1 bg-zinc-900/80 rounded-full border border-white/10 shadow-sm flex items-center gap-1.5">
-            {isUsingOwnKey ? (
-              <span className="text-cyan-300 font-semibold flex items-center gap-1.5">
-                <span className="text-sm">♾️</span>
-                <span>{t.workspace.byokUnlimitedBanner || "Generaciones Ilimitadas (Modo BYOK)"}</span>
-              </span>
+        {/* Glassmorphic Top Bar with Document Identity and Actions */}
+        <div className="absolute top-0 left-0 right-0 px-4 py-3 bg-zinc-950/85 backdrop-blur-md z-20 flex items-center justify-between border-b border-white/5 gap-3">
+          {/* Left: Document Target & Metadata info */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            {cleanCompletion ? (
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                <span className="text-xs font-semibold text-white truncate max-w-[180px] sm:max-w-xs md:max-w-md">
+                  {detectedTarget || t.workspace.defaultDocTitle || "Executive Cover Letter"}
+                </span>
+                <span className="text-[10px] text-zinc-400 font-mono px-2 py-0.5 rounded-full bg-white/5 border border-white/10 hidden sm:inline-flex items-center shrink-0">
+                  {generatedWordCount} {t.history?.docWordCount || "palabras"}
+                </span>
+              </div>
             ) : (
-              <>
-                <span className="font-bold text-amethyst-glow">{dailyLimit}</span> {t.workspace.limitRemainingLabel}
-              </>
+              <div className="flex items-center gap-2 text-xs text-zinc-400 font-medium">
+                <Sparkles className="w-3.5 h-3.5 text-amethyst-glow" />
+                <span>{t.workspace.documentCanvas || "Executive Document Canvas"}</span>
+              </div>
             )}
-          </span>
+          </div>
 
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={handleCopy}
-            disabled={!completion || isLoading || !!activeError}
-            className="bg-white/10 hover:bg-white/20 text-white border-white/10 backdrop-blur-md cursor-pointer transition-all active:scale-95"
-          >
-            {copied ? (
-              <Check className="w-4 h-4 text-emerald-400" />
-            ) : (
-              <Copy className="w-4 h-4" />
+          {/* Right: Actions Toolbar */}
+          <div className="flex items-center gap-2 shrink-0">
+            {cleanCompletion && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleDownloadPDF}
+                disabled={isLoading || isDownloadingPDF}
+                className="h-8 px-3 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 hover:text-white border-white/10 text-xs font-medium rounded-lg cursor-pointer transition-all shadow-sm flex items-center gap-1.5 active:scale-95"
+                title="Descargar PDF"
+              >
+                {isDownloadingPDF ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5 text-cyan-400" />
+                )}
+                <span className="hidden sm:inline">PDF</span>
+              </Button>
             )}
-            <span className="ml-2 text-xs font-semibold">{copied ? t.workspace.copied : t.workspace.copy}</span>
-          </Button>
+
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleCopy}
+              disabled={!cleanCompletion || isLoading || !!activeError}
+              className={cn(
+                "h-8 px-3 text-xs font-semibold rounded-lg cursor-pointer transition-all active:scale-95 flex items-center gap-1.5 shadow-sm",
+                copied 
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
+                  : "bg-white/10 hover:bg-white/20 text-white border border-white/10"
+              )}
+            >
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+              <span>{copied ? t.workspace.copied : t.workspace.copy}</span>
+            </Button>
+          </div>
         </div>
 
         {/* Scrollable Letter Content or Error State Card */}
-        <ScrollArea className="flex-1 h-full prose prose-invert prose-p:text-zinc-300 prose-headings:text-white max-w-none">
+        <ScrollArea className="flex-1 h-full max-w-none">
           {activeError ? (
             /* Premium Context-Aware Error Card */
             <div className="h-full flex flex-col items-center justify-center text-center p-8 pt-24 relative z-10 max-w-lg mx-auto space-y-5 animate-in fade-in zoom-in-95 duration-200">
@@ -571,8 +674,47 @@ export function GenerateWorkspace({
               </div>
             </div>
           ) : cleanCompletion ? (
-            <div className="font-serif text-base md:text-lg leading-relaxed text-zinc-200 relative z-10 pt-20 px-6 md:px-10 pb-12">
-              <ReactMarkdown>{cleanCompletion}</ReactMarkdown>
+            <div className="pt-16 sm:pt-20 px-3 sm:px-8 pb-16">
+              {/* Executive Manuscript Paper Canvas */}
+              <div className="max-w-2xl mx-auto bg-zinc-950/80 border border-white/10 rounded-2xl p-6 sm:p-12 shadow-[0_15px_50px_rgba(0,0,0,0.7)] backdrop-blur-md relative overflow-hidden group/sheet">
+                {/* Subtle top ambient glowing hairline */}
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amethyst-glow/60 to-transparent" />
+                
+                {/* Document Header Bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 mb-8 border-b border-white/10 gap-3">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block font-semibold">
+                      Executive Cover Letter
+                    </span>
+                    <h2 className="text-sm font-semibold text-white tracking-tight mt-0.5 truncate">
+                      {detectedTarget || "Candidate Application"}
+                    </h2>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[11px] font-mono text-zinc-300 bg-zinc-900/90 border border-white/10 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                      <Sparkles className="w-3 h-3 text-amethyst-glow" />
+                      <span>{activeModelDisplayName}</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Letter Body with Refined Leading & Typography */}
+                <div className="font-serif text-[15px] sm:text-[16px] leading-[1.95] text-zinc-200 tracking-normal space-y-5 selection:bg-amethyst-glow/30 selection:text-white prose prose-invert max-w-none prose-p:my-3.5 prose-p:leading-[1.95]">
+                  <ReactMarkdown>{cleanCompletion}</ReactMarkdown>
+                </div>
+
+                {/* Document Footer Bar */}
+                <div className="mt-12 pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between text-[11px] text-zinc-500 gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 shadow-[0_0_6px_rgba(6,182,212,0.8)]" />
+                    <span>Bespoke tailored with Vellura AI</span>
+                  </div>
+                  <div className="font-mono text-zinc-400">
+                    {generatedWordCount} {t.history?.docWordCount || "palabras"} • ~{Math.max(1, Math.round(generatedWordCount / 160))} min read
+                  </div>
+                </div>
+              </div>
             </div>
           ) : isLoading ? (
             <div className="h-full flex flex-col items-center justify-center text-center py-28 relative z-10">
@@ -633,7 +775,7 @@ export function GenerateWorkspace({
                 <span>{t.workspace.expandTitle}</span>
               </DialogTitle>
               <span className="text-xs text-zinc-500 font-mono pr-6">
-                {wordCount} words • {charCount} chars
+                {wordCount} {wordCount === 1 ? (t.workspace.word || "palabra") : (t.workspace.words || "palabras")} • {charCount} {charCount === 1 ? (t.workspace.character || "carácter") : (t.workspace.characters || "caracteres")}
               </span>
             </div>
             <DialogDescription className="text-xs text-zinc-400">
