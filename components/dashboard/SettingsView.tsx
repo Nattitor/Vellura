@@ -6,8 +6,18 @@ import { ProfileForm } from "@/components/dashboard/ProfileForm";
 import { AIUsageForm } from "@/components/dashboard/AIUsageForm";
 import { PreferencesForm } from "@/components/dashboard/PreferencesForm";
 import { AdvancedBYOKForm } from "@/components/dashboard/AdvancedBYOKForm";
-import { User, Cpu } from "lucide-react";
+import { AccountSecurityForm } from "@/components/dashboard/AccountSecurityForm";
+import { User, Cpu, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/components/providers/language-provider";
+
+interface AuthDetails {
+  id: string;
+  email: string;
+  providers: string[];
+  hasGoogle: boolean;
+  hasPassword: boolean;
+  createdAt?: string;
+}
 
 interface SettingsViewProps {
   initialResume: string;
@@ -15,6 +25,7 @@ interface SettingsViewProps {
   dailyLimit: number;
   hasBYOK: boolean;
   userKeys: Record<string, string>;
+  authDetails?: AuthDetails | null;
 }
 
 export function SettingsView({
@@ -23,28 +34,31 @@ export function SettingsView({
   dailyLimit,
   hasBYOK,
   userKeys,
+  authDetails,
 }: SettingsViewProps) {
   const { t } = useLanguage();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const [activeTab, setActiveTab] = useState<"general" | "advanced">(
-    tabParam === "advanced" ? "advanced" : "general"
+  const [activeTab, setActiveTab] = useState<"general" | "security" | "advanced">(
+    tabParam === "advanced" ? "advanced" : tabParam === "security" ? "security" : "general"
   );
 
   useEffect(() => {
     if (tabParam === "advanced") {
       setActiveTab("advanced");
+    } else if (tabParam === "security") {
+      setActiveTab("security");
     }
   }, [tabParam]);
 
   return (
     <div className="space-y-8">
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-4">
+      <div className="flex items-center gap-2 border-b border-white/10 pb-4 overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveTab("general")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
             activeTab === "general"
               ? "bg-white/10 text-white border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)]"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -56,8 +70,21 @@ export function SettingsView({
 
         <button
           type="button"
+          onClick={() => setActiveTab("security")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === "security"
+              ? "bg-amethyst-glow/15 text-purple-200 border border-amethyst-glow/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
+              : "text-zinc-400 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-amethyst-glow" />
+          <span>{t.settings.securityTab || "Seguridad & Acceso"}</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab("advanced")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
             activeTab === "advanced"
               ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)]"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -92,6 +119,10 @@ export function SettingsView({
             <AIUsageForm dailyLimit={dailyLimit} hasBYOK={hasBYOK} />
             <PreferencesForm initialOutputLanguage={outputLanguage} />
           </div>
+        </div>
+      ) : activeTab === "security" ? (
+        <div className="max-w-3xl animate-in fade-in duration-200">
+          <AccountSecurityForm authDetails={authDetails} />
         </div>
       ) : (
         <div className="max-w-4xl animate-in fade-in duration-200">
