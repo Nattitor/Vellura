@@ -205,39 +205,39 @@ ${jobDescription}`;
       apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || userKeys.google,
     });
 
-    let candidateConfigs: Array<{ model: any; modelName: string; isFallback: boolean }> = [];
+    let candidateConfigs: Array<{ model: any; modelName: string; provider: AIProviderId; isFallback: boolean }> = [];
 
     if (modelPreference === "speed") {
       // Speed Mode: Google first → OpenRouter models (if key, but skip on first 429) → Gemini 3.6 Flash (last resort)
       // All OpenRouter free models share a single 50/day per-account quota, so we probe only one OR model first.
       candidateConfigs = [
-        { model: googleClient("gemini-3.7-flash"), modelName: "gemini-3.7-flash", isFallback: false },
+        { model: googleClient("gemini-3.7-flash"), modelName: "gemini-3.7-flash", provider: "google", isFallback: false },
         ...(openrouterClient
-          ? [{ model: openrouterClient("nvidia/nemotron-3.5-lightning:free"), modelName: "nemotron-3.5-lightning", isFallback: true }]
+          ? [{ model: openrouterClient("nvidia/nemotron-3.5-lightning:free"), modelName: "nemotron-3.5-lightning", provider: "openrouter" as AIProviderId, isFallback: true }]
           : []),
         ...(openrouterClient
-          ? [{ model: openrouterClient("z-ai/glm-5.2:free"), modelName: "glm-5.2", isFallback: true }]
+          ? [{ model: openrouterClient("z-ai/glm-5.2:free"), modelName: "glm-5.2", provider: "openrouter" as AIProviderId, isFallback: true }]
           : []),
         ...(openrouterClient
-          ? [{ model: openrouterClient("poolside/laguna-xs-2.1:free"), modelName: "laguna-xs-2.1", isFallback: true }]
+          ? [{ model: openrouterClient("poolside/laguna-xs-2.1:free"), modelName: "laguna-xs-2.1", provider: "openrouter" as AIProviderId, isFallback: true }]
           : []),
-        { model: googleClient("gemini-3.6-flash"), modelName: "gemini-3.6-flash", isFallback: true },
+        { model: googleClient("gemini-3.6-flash"), modelName: "gemini-3.6-flash", provider: "google", isFallback: true },
       ];
     } else if (modelPreference === "reasoning") {
       // Reasoning Mode: Gemma 4 (Google) → Nemotron 3 Ultra (OpenRouter) → Gemma 4 26B (OR) → Gemma 4 31B (OR free) → Gemini 3.6 Flash
       // All OpenRouter free models share a single 50/day per-account quota.
       candidateConfigs = [
-        { model: googleClient("gemma-4-31b-it"), modelName: "gemma-4-31b-it", isFallback: false },
+        { model: googleClient("gemma-4-31b-it"), modelName: "gemma-4-31b-it", provider: "google", isFallback: false },
         ...(openrouterClient
-          ? [{ model: openrouterClient("nvidia/nemotron-3-ultra-550b-a55b:free"), modelName: "nemotron-3-ultra", isFallback: true }]
+          ? [{ model: openrouterClient("nvidia/nemotron-3-ultra-550b-a55b:free"), modelName: "nemotron-3-ultra", provider: "openrouter" as AIProviderId, isFallback: true }]
           : []),
         ...(openrouterClient
-          ? [{ model: openrouterClient("google/gemma-4-26b-a4b-it:free"), modelName: "gemma-4-26b", isFallback: true }]
+          ? [{ model: openrouterClient("google/gemma-4-26b-a4b-it:free"), modelName: "gemma-4-26b", provider: "openrouter" as AIProviderId, isFallback: true }]
           : []),
         ...(openrouterClient
-          ? [{ model: openrouterClient("google/gemma-4-31b-it:free"), modelName: "gemma-4-31b-it", isFallback: true }]
+          ? [{ model: openrouterClient("google/gemma-4-31b-it:free"), modelName: "gemma-4-31b-it", provider: "openrouter" as AIProviderId, isFallback: true }]
           : []),
-        { model: googleClient("gemini-3.6-flash"), modelName: "gemini-3.6-flash", isFallback: true },
+        { model: googleClient("gemini-3.6-flash"), modelName: "gemini-3.6-flash", provider: "google", isFallback: true },
       ];
     } else {
       // Expert Mode: user selected specific model & provider
@@ -248,13 +248,14 @@ ${jobDescription}`;
         userKeys,
       });
       candidateConfigs = [
-        { model: resolved.model, modelName: resolved.modelName, isFallback: false }
+        { model: resolved.model, modelName: resolved.modelName, provider: resolved.provider, isFallback: false }
       ];
       // If user selected Gemini 3.7 in expert mode, also offer Gemini 3.6 fallback
       if (resolved.modelName === "gemini-3.7-flash" && resolved.provider === "google") {
         candidateConfigs.push({
           model: googleClient("gemini-3.6-flash"),
           modelName: "gemini-3.6-flash",
+          provider: "google",
           isFallback: true,
         });
       }
@@ -270,6 +271,12 @@ ${jobDescription}`;
       const candidate = candidateConfigs[i];
       console.log(`[Stream Attempt ${i + 1}/${candidateConfigs.length}] Requesting ${candidate.modelName}...`);
 
+      // This AbortController only bounds how long we wait for the connection to be
+      // established (first chunk). Once a candidate proves itself alive, we clear
+      // this timer so it can NOT abort an already-successful, long-running stream.
+      const connectController = new AbortController();
+      const connectTimeout = setTimeout(() => connectController.abort(), 4500);
+
       try {
         const streamResult = streamText({
           model: candidate.model,
@@ -277,7 +284,7 @@ ${jobDescription}`;
           prompt: userPrompt,
           temperature: typeof temperature === "number" ? temperature : 0.7,
           maxRetries: 0,
-          abortSignal: AbortSignal.timeout(4500), // Rapid 4.5s check per candidate
+          abortSignal: connectController.signal,
         });
 
         // Test the first chunk to ensure stream connection is valid and not 503
@@ -285,6 +292,10 @@ ${jobDescription}`;
         const reader = probeStream.getReader();
         const firstChunk = await reader.read();
         reader.releaseLock();
+
+        // Connection established (or cleanly ended) within the window: this
+        // candidate is no longer subject to the 4.5s connect timeout.
+        clearTimeout(connectTimeout);
 
         if (firstChunk.value !== undefined) {
           activeModelName = candidate.modelName;
@@ -319,25 +330,25 @@ ${jobDescription}`;
           break;
         }
       } catch (candidateErr: any) {
+        clearTimeout(connectTimeout);
         const status = candidateErr?.statusCode;
-        const isOpenRouter429 = status === 429 && openrouterKey !== undefined;
-        const isOpenRouter403 = status === 403 && openrouterKey !== undefined;
+        // Attribute the failure to the provider that actually returned it, not to
+        // "an OpenRouter key happens to exist somewhere in this request". Google and
+        // OpenRouter can share a modelName (e.g. "gemma-4-31b-it"), so name-based
+        // detection is unreliable; the explicit `candidate.provider` tag is not.
+        const isOpenRouterCandidate = candidate.provider === "openrouter";
+        const isRateLimitedOrRestricted = status === 429 || status === 403;
+        const shouldSkipRemainingOR = isOpenRouterCandidate && isRateLimitedOrRestricted;
         console.warn(
-          `Model ${candidate.modelName} unavailable (status ${status || "?"}: ${candidateErr?.message || "high demand"}). ${isOpenRouter429 || isOpenRouter403 ? "OpenRouter quota exhausted, skipping remaining OR candidates." : "Cascading to next candidate..."}`
+          `Model ${candidate.modelName} (${candidate.provider}) unavailable (status ${status || "?"}: ${candidateErr?.message || "high demand"}). ${shouldSkipRemainingOR ? "OpenRouter quota exhausted, skipping remaining OR candidates." : "Cascading to next candidate..."}`
         );
-        // If OpenRouter returned 429 (rate limit) or 403 (model restricted), all OR models will fail the same way.
-        // Skip the remaining OpenRouter candidates to avoid wasting time and show the correct user-facing message.
-        if (isOpenRouter429 || isOpenRouter403) {
+        // If an OpenRouter candidate returned 429 (rate limit) or 403 (model restricted),
+        // all remaining OpenRouter models will likely fail the same way (shared quota).
+        // Skip straight to the next non-OpenRouter candidate to avoid wasting time.
+        if (shouldSkipRemainingOR) {
           openrouterQuotaExhausted = true;
-          // Skip to the next non-OpenRouter candidate (Google direct)
-          // Find the index of the last OR candidate in the list and jump past it
           for (let j = i + 1; j < candidateConfigs.length; j++) {
-            const nextName = candidateConfigs[j].modelName;
-            if (
-              nextName === "gemini-3.6-flash" ||
-              nextName === "gemini-3.7-flash" ||
-              nextName === "gemma-4-31b-it"
-            ) {
+            if (candidateConfigs[j].provider !== "openrouter") {
               i = j - 1; // -1 because the loop's i++ will increment
               break;
             }
