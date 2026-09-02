@@ -42,13 +42,23 @@ export function resolveAIModel(params: ProviderResolutionParams) {
     }
 
   // 2. EXPERT MODE / BYOK
+  // Security: the model MUST exist in our catalog and the provider MUST match it.
+  // This prevents clients from invoking arbitrary model IDs on providers directly.
   const targetModel = AI_MODELS.find((m) => m.id === modelId);
-  const effectiveProvider: AIProviderId = providerId || targetModel?.provider || "google";
-  const effectiveModelId = modelId || DEFAULT_SPEED_MODEL;
+  if (!targetModel) {
+    throw new Error("Selected model is not recognized. Please choose a model from the catalog.");
+  }
+  if (providerId && providerId !== targetModel.provider) {
+    throw new Error("Provider does not match the selected model.");
+  }
+  const effectiveProvider: AIProviderId = targetModel.provider;
+  const effectiveModelId = targetModel.id;
 
   switch (effectiveProvider) {
     case "openai": {
-      const apiKey = userKeys.openai || process.env.OPENAI_API_KEY;
+      // BYOK-only provider: never fall back to a system/env key. A shared system
+      // key here would let any authenticated user spend the admin's paid quota.
+      const apiKey = userKeys.openai;
       if (!apiKey) {
         throw new Error("OpenAI API key is required to use OpenAI models. Please add your key in Settings > Advanced.");
       }
@@ -61,7 +71,8 @@ export function resolveAIModel(params: ProviderResolutionParams) {
     }
 
     case "anthropic": {
-      const apiKey = userKeys.anthropic || process.env.ANTHROPIC_API_KEY;
+      // BYOK-only provider: never fall back to a system/env key.
+      const apiKey = userKeys.anthropic;
       if (!apiKey) {
         throw new Error("Anthropic API key is required to use Claude models. Please add your key in Settings > Advanced.");
       }
@@ -74,7 +85,8 @@ export function resolveAIModel(params: ProviderResolutionParams) {
     }
 
     case "deepseek": {
-      const apiKey = userKeys.deepseek || process.env.DEEPSEEK_API_KEY;
+      // BYOK-only provider: never fall back to a system/env key.
+      const apiKey = userKeys.deepseek;
       if (!apiKey) {
         throw new Error("DeepSeek API key is required to use DeepSeek models. Please add your key in Settings > Advanced.");
       }
