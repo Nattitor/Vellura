@@ -9,8 +9,15 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // Auto-clean bloated base64 from user_metadata if present to prevent oversized cookies
+      if (data?.user?.user_metadata?.avatar_url?.startsWith("data:")) {
+        await supabase.auth.updateUser({
+          data: { avatar_url: null },
+        });
+      }
+
       const forwardedHost = request.headers.get("x-forwarded-host"); // original origin before load balancer
       const isLocalEnv = process.env.NODE_ENV === "development";
       if (isLocalEnv) {

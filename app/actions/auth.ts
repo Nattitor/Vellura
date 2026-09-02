@@ -10,13 +10,20 @@ export async function login(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
     return { error: error.message };
+  }
+
+  // Clean bloated base64 from user_metadata if it was previously set
+  if (data?.user?.user_metadata?.avatar_url?.startsWith("data:")) {
+    await supabase.auth.updateUser({
+      data: { avatar_url: null },
+    });
   }
 
   revalidatePath("/", "layout");
@@ -25,12 +32,32 @@ export async function login(formData: FormData) {
 
 export async function signup(formData: FormData) {
   const supabase = await createClient();
-  const email = formData.get("email") as string;
+  const email = (formData.get("email") as string)?.trim();
   const password = formData.get("password") as string;
+  const preferredLanguage = (formData.get("preferredLanguage") as string) || "Spanish";
+  const langCode = preferredLanguage.toLowerCase().startsWith("en")
+    ? "en"
+    : preferredLanguage.toLowerCase().startsWith("fr")
+    ? "fr"
+    : preferredLanguage.toLowerCase().startsWith("pt")
+    ? "pt"
+    : "es";
+
+  const headerList = await headers();
+  const host = headerList.get("host");
+  const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
+  const origin = `${protocol}://${host}`;
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback`,
+      data: {
+        preferred_language: langCode,
+        ui_language: preferredLanguage,
+      },
+    },
   });
 
   if (error) {
@@ -38,15 +65,93 @@ export async function signup(formData: FormData) {
   }
 
   if (data?.user?.identities?.length === 0) {
-    return { error: "This email is already taken. Please sign in." };
+    return { error: "This email is already registered. Please sign in or reset your password." };
   }
 
   if (!data.session) {
-    return { error: "Please check your email to confirm your account before logging in." };
+    return { 
+      success: true, 
+      requiresVerification: true, 
+      email 
+    };
   }
 
   revalidatePath("/", "layout");
   redirect("/dashboard");
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  const supabase = await createClient();
+  const email = (formData.get("email") as string)?.trim();
+
+  if (!email) {
+    return { error: "Please enter a valid email address." };
+  }
+
+  const headerList = await headers();
+  const host = headerList.get("host");
+  const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
+  const origin = `${protocol}://${host}`;
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/callback?next=/dashboard/settings`,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
+export async function updateUserPassword(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "You must be signed in to change your password." };
+  }
+
+  const newPassword = formData.get("newPassword") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
+
+  if (!newPassword || newPassword.length < 6) {
+    return { error: "Password must be at least 6 characters long." };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { error: "Passwords do not match." };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/dashboard/settings");
+  return { success: true };
+}
+
+export async function getUserAuthDetails() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const identities = user.identities || [];
+  const providers = identities.map((id) => id.provider);
+
+  return {
+    id: user.id,
+    email: user.email || "",
+    providers,
+    hasGoogle: providers.includes("google") || user.app_metadata?.provider === "google",
+    hasPassword: providers.includes("email"),
+    createdAt: user.created_at,
+  };
 }
 
 export async function signInWithGoogle() {
@@ -60,8 +165,16 @@ export async function signInWithGoogle() {
     provider: "google",
     options: {
       redirectTo: `${origin}/auth/callback`,
+      queryParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
     },
   });
+
+  if (error) {
+    return { error: error.message };
+  }
 
   if (data.url) {
     redirect(data.url);
