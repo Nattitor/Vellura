@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, JetBrains_Mono } from "next/font/google";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/components/providers/language-provider";
-import { LanguageType } from "@/utils/i18n/dictionaries";
+import { resolveInitialLanguage } from "@/utils/i18n/accept-language";
+import { languageTypeToBcp47 } from "@/utils/i18n/bcp47";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,16 +49,26 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
-  const cookieLang = (cookieStore.get("vellura_ui_language")?.value as LanguageType) || "Spanish";
-  const cookieOutput = cookieStore.get("vellura_output_language")?.value || "Spanish";
+  const headerList = await headers();
+
+  // 1. The user's previously chosen UI language (cookie) wins, if present.
+  // 2. Otherwise, detect from the browser's Accept-Language header.
+  // 3. Otherwise, default to English.
+  const cookieLang = cookieStore.get("vellura_ui_language")?.value;
+  const initialLang = resolveInitialLanguage(
+    headerList.get("accept-language"),
+    cookieLang
+  );
+  const cookieOutput = cookieStore.get("vellura_output_language")?.value || initialLang;
+  const htmlLang = languageTypeToBcp47(initialLang);
 
   return (
     <html
-      lang="es"
+      lang={htmlLang}
       className={`${geistSans.variable} ${jetbrainsMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col">
-        <LanguageProvider initialLanguage={cookieLang} initialOutputLanguage={cookieOutput}>
+        <LanguageProvider initialLanguage={initialLang} initialOutputLanguage={cookieOutput}>
           {children}
           <Toaster />
         </LanguageProvider>

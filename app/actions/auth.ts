@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
+import { languageTypeToBcp47 } from "@/utils/i18n/bcp47";
+import { LanguageType } from "@/utils/i18n/dictionaries";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -34,14 +36,8 @@ export async function signup(formData: FormData) {
   const supabase = await createClient();
   const email = (formData.get("email") as string)?.trim();
   const password = formData.get("password") as string;
-  const preferredLanguage = (formData.get("preferredLanguage") as string) || "Spanish";
-  const langCode = preferredLanguage.toLowerCase().startsWith("en")
-    ? "en"
-    : preferredLanguage.toLowerCase().startsWith("fr")
-    ? "fr"
-    : preferredLanguage.toLowerCase().startsWith("pt")
-    ? "pt"
-    : "es";
+  const preferredLanguage = (formData.get("preferredLanguage") as LanguageType) || "Spanish";
+  const langCode = languageTypeToBcp47(preferredLanguage);
 
   const headerList = await headers();
   const host = headerList.get("host");

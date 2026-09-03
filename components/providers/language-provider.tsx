@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { dictionaries, LanguageType } from "@/utils/i18n/dictionaries";
+import { languageTypeToBcp47 } from "@/utils/i18n/bcp47";
 
 type LanguageContextType = {
   language: LanguageType;
@@ -40,6 +41,15 @@ export function LanguageProvider({
       document.cookie = `vellura_output_language=${savedOutput}; path=/; max-age=31536000; SameSite=Lax`;
     }
   }, []);
+
+  // Keep the <html lang="..."> attribute in sync with the active UI language
+  // so screen readers and browser translation prompts see the correct locale
+  // even after a client-side language switch (the server-rendered value only
+  // applies on the initial page load).
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.lang = languageTypeToBcp47(language);
+  }, [language]);
 
   const setLanguage = (lang: LanguageType) => {
     setLanguageState(lang);

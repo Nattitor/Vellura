@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { resolveInitialLanguage } from "@/utils/i18n/accept-language";
+import { languageTypeToBcp47 } from "@/utils/i18n/bcp47";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -15,6 +17,23 @@ export async function GET(request: Request) {
       if (data?.user?.user_metadata?.avatar_url?.startsWith("data:")) {
         await supabase.auth.updateUser({
           data: { avatar_url: null },
+        });
+      }
+
+      // If the OAuth user came in without a ui_language in their metadata
+      // (Google OAuth doesn't send one), seed it from the browser's
+      // Accept-Language header so the trigger-based profile creation has a
+      // sensible default. Existing users are unaffected: the update below
+      // only writes when the field is currently null or empty.
+      const existingUi = data?.user?.user_metadata?.ui_language;
+      if (!existingUi || String(existingUi).trim() === "") {
+        const acceptLanguage = request.headers.get("accept-language");
+        const detected = resolveInitialLanguage(acceptLanguage);
+        await supabase.auth.updateUser({
+          data: {
+            ui_language: detected,
+            preferred_language: languageTypeToBcp47(detected),
+          },
         });
       }
 
