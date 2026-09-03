@@ -40,11 +40,13 @@ export async function updateSession(request: NextRequest) {
 
   // Handle expired/invalid JWT. NOTE: getUser() also returns an error when
   // there is simply no session (never logged in), so only flag `expired`
-  // when session cookies exist — otherwise it's a plain first visit.
+  // when a real auth-token cookie exists. The match must EXCLUDE the PKCE
+  // `...-auth-token-code-verifier` cookie, which lingers after OAuth
+  // attempts without any session behind it.
   if (error && isProtectedRoute) {
     const hadSession = request.cookies
       .getAll()
-      .some((c) => c.name.startsWith("sb-") && c.name.includes("auth-token"));
+      .some((c) => /^sb-.*-auth-token(\.\d+)?$/.test(c.name));
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     if (hadSession) {
