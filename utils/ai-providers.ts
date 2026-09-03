@@ -1,47 +1,24 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { AIProviderId, DEFAULT_SPEED_MODEL, DEFAULT_REASONING_MODEL, AI_MODELS } from "./ai-models";
+import { AIProviderId, AI_MODELS } from "./ai-models";
 
 export interface ProviderResolutionParams {
   providerId?: AIProviderId;
   modelId?: string;
-  mode?: "speed" | "reasoning" | "expert";
+  mode?: "expert";
   userKeys?: Record<string, string>;
   systemGoogleKey?: string;
 }
 
 export function resolveAIModel(params: ProviderResolutionParams) {
-  const { providerId, modelId, mode = "speed", userKeys = {}, systemGoogleKey } = params;
+  const { providerId, modelId, mode = "expert", userKeys = {}, systemGoogleKey } = params;
 
-  // 1. STANDARD NON-EXPERT MODE (Zero cost system models using system key)
-    if (mode === "speed") {
-      const googleApiKey = userKeys.google || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-      if (!googleApiKey) {
-        throw new Error("No Google AI API key available. Speed mode requires a Google key as last resort.");
-      }
-      const googleClient = createGoogleGenerativeAI({ apiKey: googleApiKey });
-      return {
-        model: googleClient(DEFAULT_SPEED_MODEL),
-        modelName: DEFAULT_SPEED_MODEL,
-        provider: "google" as AIProviderId,
-      };
-    }
+  if (mode !== "expert") {
+    throw new Error(`Unsupported mode "${mode}". resolveAIModel only handles Expert Mode; Speed/Reasoning use the inline cascade in app/api/generate/route.ts.`);
+  }
 
-    if (mode === "reasoning") {
-      const googleApiKey = userKeys.google || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-      if (!googleApiKey) {
-        throw new Error("No Google AI API key available. Reasoning mode requires a Google key as last resort.");
-      }
-      const googleClient = createGoogleGenerativeAI({ apiKey: googleApiKey });
-      return {
-        model: googleClient(DEFAULT_REASONING_MODEL),
-        modelName: DEFAULT_REASONING_MODEL,
-        provider: "google" as AIProviderId,
-      };
-    }
-
-  // 2. EXPERT MODE / BYOK
+  // EXPERT MODE / BYOK
   // Security: the model MUST exist in our catalog and the provider MUST match it.
   // This prevents clients from invoking arbitrary model IDs on providers directly.
   const targetModel = AI_MODELS.find((m) => m.id === modelId);
@@ -111,7 +88,7 @@ export function resolveAIModel(params: ProviderResolutionParams) {
             baseURL: "https://openrouter.ai/api/v1",
             apiKey: effectiveKey,
         headers: {
-          "HTTP-Referer": "https://vellura.ai",
+          "HTTP-Referer": "https://vellura.vercel.app",
           "X-Title": "Vellura AI Workspace",
         },
       });
@@ -119,6 +96,24 @@ export function resolveAIModel(params: ProviderResolutionParams) {
         model: openrouterClient(effectiveModelId),
         modelName: effectiveModelId,
         provider: "openrouter" as AIProviderId,
+      };
+    }
+
+    case "groq": {
+      // Groq direct (OpenAI-compatible endpoint). System key covers the free
+      // cascade; BYOK key unlocks Expert Mode on the user's own quota.
+      const apiKey = userKeys.groq || process.env.GROQ_API_KEY;
+      if (!apiKey) {
+        throw new Error("Groq API key is required. Get a free one (no credit card) at https://console.groq.com/keys or add yours in Settings > Advanced.");
+      }
+      const groqClient = createOpenAI({
+        baseURL: "https://api.groq.com/openai/v1",
+        apiKey,
+      });
+      return {
+        model: groqClient(effectiveModelId),
+        modelName: effectiveModelId,
+        provider: "groq" as AIProviderId,
       };
     }
 
