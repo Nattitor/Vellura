@@ -141,6 +141,17 @@
     @apply bg-zinc-950/50 border border-white/5 backdrop-blur-md rounded-xl shadow-lg;
   }
 
+  /* F0 mobile base: minimum tactile target (44px) for interactive rows */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* F0 mobile base: bottom safe-area padding (notch / gesture bar) */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
   .ethereal-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
@@ -168,4 +179,11 @@
 ::-webkit-scrollbar-thumb:hover,
 .ethereal-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* F0 mobile base: lift Sonner toasts above the mobile bottom tab bar */
+@media (max-width: 767px) {
+  [data-sonner-toaster][data-x-position="center"] {
+    bottom: calc(5.5rem + env(safe-area-inset-bottom)) !important;
+  }
 }

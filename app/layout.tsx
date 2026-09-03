@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, JetBrains_Mono } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import "./globals.css";
@@ -41,6 +41,13 @@ export const metadata: Metadata = {
     title: "Vellura | The Intelligent Workspace",
     description: "Generate hyper-personalized, premium executive cover letters and pitches with AI.",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#09090B",
 };
 
 export default async function RootLayout({
