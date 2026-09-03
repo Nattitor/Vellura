@@ -171,7 +171,7 @@ export function ProfileForm({
               type="button"
               variant="outline"
               onClick={() => removeAvatar()}
-              className="bg-zinc-900/50 border-white/10 text-zinc-400 hover:text-red-400 hover:border-red-500/30 text-xs px-3"
+              className="bg-zinc-900/50 border-white/10 text-zinc-400 hover:text-red-400 hover:border-red-500/30 text-xs px-3 h-11"
             >
               <Trash2 className="w-3.5 h-3.5 mr-1.5" />
               {t.nav.removeAvatar}
@@ -180,7 +180,7 @@ export function ProfileForm({
           <Button
             type="button"
             onClick={() => avatarFileInputRef.current?.click()}
-            className="bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-white text-xs px-4 shadow-sm"
+            className="bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-white text-xs px-4 h-11 shadow-sm"
           >
             <Camera className="w-3.5 h-3.5 mr-1.5 text-amethyst-glow" />
             {t.settings.uploadPhoto}
@@ -201,7 +201,7 @@ export function ProfileForm({
           const file = e.dataTransfer.files?.[0];
           if (file) handleCVUpload(file);
         }}
-        className={`w-full ethereal-panel p-6 md:p-8 rounded-xl flex flex-col space-y-6 relative overflow-hidden transition-all duration-300 ${
+        className={`w-full ethereal-panel p-4 sm:p-6 md:p-8 rounded-xl flex flex-col space-y-6 relative overflow-hidden transition-all duration-300 ${
           isDragging ? "ring-2 ring-cyan-400/80 bg-cyan-950/20" : ""
         } ${highlightPulse ? "ring-2 ring-amethyst-glow shadow-[0_0_30px_rgba(139,92,246,0.3)]" : ""}`}
       >
@@ -236,7 +236,7 @@ export function ProfileForm({
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-300 hover:text-white select-none transition-colors bg-zinc-900/80 border border-white/10 px-3 py-2 rounded-xl">
+            <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-300 hover:text-white select-none transition-colors bg-zinc-900/80 border border-white/10 px-3 h-11 rounded-xl">
               <input
                 type="checkbox"
                 checked={autoTranslate}
@@ -250,7 +250,7 @@ export function ProfileForm({
               type="button"
               onClick={() => cvFileInputRef.current?.click()}
               disabled={isParsing || isPending}
-              className="bg-gradient-to-r from-amethyst-glow to-cyan-500 hover:opacity-90 text-white text-xs px-4 py-2 rounded-xl font-semibold shadow-[0_0_20px_rgba(139,92,246,0.25)] flex items-center gap-2 cursor-pointer transition-all active:scale-[0.98] shrink-0"
+              className="bg-gradient-to-r from-amethyst-glow to-cyan-500 hover:opacity-90 text-white text-xs px-4 h-11 rounded-xl font-semibold shadow-[0_0_20px_rgba(139,92,246,0.25)] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98] shrink-0 w-full sm:w-auto"
             >
               {isParsing ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

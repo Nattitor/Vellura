@@ -56,11 +56,11 @@ export function SettingsView({
   return (
     <div className="space-y-8">
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-4 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-white/10 pb-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
           type="button"
           onClick={() => setActiveTab("general")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
             activeTab === "general"
               ? "bg-white/10 text-white border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)]"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -73,7 +73,7 @@ export function SettingsView({
         <button
           type="button"
           onClick={() => setActiveTab("security")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
             activeTab === "security"
               ? "bg-amethyst-glow/15 text-purple-200 border border-amethyst-glow/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
               : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -86,7 +86,7 @@ export function SettingsView({
         <button
           type="button"
           onClick={() => setActiveTab("advanced")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
             activeTab === "advanced"
               ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)]"
               : "text-zinc-400 hover:text-white hover:bg-white/5"

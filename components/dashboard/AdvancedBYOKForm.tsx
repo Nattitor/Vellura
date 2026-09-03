@@ -188,7 +188,7 @@ export function AdvancedBYOKForm({ initialConfiguredProviders = [] }: { initialC
                 size="sm"
                 onClick={() => handleRemove(activeProvider)}
                 disabled={isPending}
-                className="h-8 px-3 text-xs bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/40 cursor-pointer"
+                className="h-11 sm:h-8 px-4 text-xs bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/40 cursor-pointer"
               >
                 <Trash2 className="w-3 h-3 mr-1" />
                 {t.settings.disconnectBtn || "Disconnect"}
@@ -203,14 +203,14 @@ export function AdvancedBYOKForm({ initialConfiguredProviders = [] }: { initialC
                   setInputs((prev) => ({ ...prev, [activeProvider]: e.target.value }))
                 }
                 placeholder={AI_PROVIDERS[activeProvider].placeholder}
-                className="bg-zinc-950/70 border-white/10 text-white text-xs h-10 focus-visible:ring-cyan-500 font-mono"
+                className="bg-zinc-950/70 border-white/10 text-white text-base sm:text-xs h-12 sm:h-10 focus-visible:ring-cyan-500 font-mono"
                 disabled={isPending}
               />
               <Button
                 type="button"
                 onClick={() => handleSave(activeProvider)}
                 disabled={isPending || !(inputs[activeProvider] || "").trim()}
-                className="h-10 px-4 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium shrink-0 cursor-pointer"
+                className="h-12 sm:h-10 px-4 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-medium shrink-0 cursor-pointer"
               >
                 {isPending ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

@@ -87,7 +87,7 @@ export function PreferencesForm({
           </p>
           <div className="pt-1">
             <Select value={uiLanguage} onValueChange={(val) => setUiLanguage(val as LanguageType)}>
-              <SelectTrigger className="w-full h-10 text-xs bg-zinc-900/80 border-white/10 hover:border-white/20 text-white rounded-xl focus:ring-1 focus:ring-amethyst-glow/50 transition-all shadow-sm">
+              <SelectTrigger className="w-full h-12 sm:h-10 text-base sm:text-xs bg-zinc-900/80 border-white/10 hover:border-white/20 text-white rounded-xl focus:ring-1 focus:ring-amethyst-glow/50 transition-all shadow-sm">
                 <SelectValue placeholder="Select Language" />
               </SelectTrigger>
               <SelectContent className="bg-zinc-950/95 border-white/15 text-white backdrop-blur-xl rounded-xl shadow-2xl">
@@ -135,7 +135,7 @@ export function PreferencesForm({
           </p>
           <div className="pt-1">
             <Select value={outputLanguage} onValueChange={(val) => val && setOutputLanguage(val)}>
-              <SelectTrigger className="w-full h-10 text-xs bg-zinc-900/80 border-white/10 hover:border-white/20 text-white rounded-xl focus:ring-1 focus:ring-amethyst-glow/50 transition-all shadow-sm">
+              <SelectTrigger className="w-full h-12 sm:h-10 text-base sm:text-xs bg-zinc-900/80 border-white/10 hover:border-white/20 text-white rounded-xl focus:ring-1 focus:ring-amethyst-glow/50 transition-all shadow-sm">
                 <SelectValue placeholder="Select Language" />
               </SelectTrigger>
               <SelectContent className="bg-zinc-950/95 border-white/15 text-white backdrop-blur-xl rounded-xl shadow-2xl">
@@ -200,7 +200,7 @@ export function PreferencesForm({
         <Button
           onClick={handleSave}
           disabled={isPending}
-          className="w-full bg-amethyst-glow hover:bg-amethyst-glow/90 text-white text-xs font-semibold h-10 rounded-xl active:scale-[0.98] transition-all shadow-[0_0_15px_rgba(139,92,246,0.25)] hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] cursor-pointer"
+          className="w-full bg-amethyst-glow hover:bg-amethyst-glow/90 text-white text-xs font-semibold h-11 sm:h-10 rounded-xl active:scale-[0.98] transition-all shadow-[0_0_15px_rgba(139,92,246,0.25)] hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] cursor-pointer"
         >
           {isPending ? (t.settings.saving || "Saving...") : (t.settings.savePref || "Save Preferences")}
         </Button>

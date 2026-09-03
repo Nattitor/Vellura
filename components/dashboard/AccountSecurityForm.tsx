@@ -166,13 +166,13 @@ export function AccountSecurityForm({ authDetails }: { authDetails?: AuthDetails
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="bg-zinc-900/50 border-white/10 text-white text-xs h-9 pr-9 focus-visible:ring-amethyst-glow"
+                className="bg-zinc-900/50 border-white/10 text-white text-base sm:text-xs h-12 sm:h-9 pr-11 focus-visible:ring-amethyst-glow"
                 disabled={isPending}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors touch-target flex items-center justify-center"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -192,7 +192,7 @@ export function AccountSecurityForm({ authDetails }: { authDetails?: AuthDetails
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="bg-zinc-900/50 border-white/10 text-white text-xs h-9 focus-visible:ring-amethyst-glow"
+              className="bg-zinc-900/50 border-white/10 text-white text-base sm:text-xs h-12 sm:h-9 focus-visible:ring-amethyst-glow"
               disabled={isPending}
             />
           </div>
@@ -208,7 +208,7 @@ export function AccountSecurityForm({ authDetails }: { authDetails?: AuthDetails
           <Button
             type="submit"
             disabled={isPending || !newPassword || !confirmPassword}
-            className="bg-amethyst-glow hover:bg-amethyst-glow/90 text-white text-xs font-semibold h-9 px-4 rounded-lg cursor-pointer transition-all shadow-[0_0_15px_rgba(168,85,247,0.2)] disabled:opacity-50 flex items-center gap-1.5"
+            className="bg-amethyst-glow hover:bg-amethyst-glow/90 text-white text-xs font-semibold h-11 sm:h-9 px-4 rounded-lg cursor-pointer transition-all shadow-[0_0_15px_rgba(168,85,247,0.2)] disabled:opacity-50 flex items-center justify-center gap-1.5 w-full sm:w-auto"
           >
             {isPending ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />

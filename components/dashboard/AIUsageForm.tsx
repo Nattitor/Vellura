@@ -81,13 +81,13 @@ export function AIUsageForm({ dailyLimit, hasBYOK }: { dailyLimit: number; hasBY
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="AIzaSy..."
-              className="bg-zinc-900/50 border-white/10 text-white text-xs h-9 focus-visible:ring-cyan-500"
+              className="bg-zinc-900/50 border-white/10 text-white text-base sm:text-xs h-12 sm:h-9 focus-visible:ring-cyan-500"
               disabled={isPending}
             />
             <Button
               onClick={handleSaveKey}
               disabled={isPending || !apiKey.trim()}
-              className="bg-zinc-800 hover:bg-zinc-700 text-white text-xs h-9 px-4 transition-colors border border-white/10 shrink-0"
+              className="bg-zinc-800 hover:bg-zinc-700 text-white text-xs h-11 sm:h-9 px-4 transition-colors border border-white/10 shrink-0"
             >
               {isPending ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />

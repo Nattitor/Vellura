@@ -9,8 +9,8 @@ export function SettingsHeader({ completionPercentage }: { completionPercentage:
   return (
     <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight mb-2 flex items-center gap-2">
-          <Settings className="w-8 h-8 text-amethyst-glow" />
+        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2 flex items-center gap-2">
+          <Settings className="w-7 h-7 sm:w-8 sm:h-8 text-amethyst-glow" />
           {t.settings.title}
         </h1>
         <p className="text-zinc-400">{t.settings.subtitle}</p>
