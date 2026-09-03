@@ -104,6 +104,7 @@ This roadmap tracks the construction of the Vellura Micro-SaaS. Each phase lists
 - [x] Mobile F2 fix: floating CTA only when the real button is off-screen (commit `0776845`).
 - [x] Mobile F3: Drawer + Onboarding phone layout — bottom-sheet onboarding, full-width drawer tabs, stacked footers (commit `99d2261`).
 - [x] Mobile F4: Historial + Ajustes + Login phone layout — touch targets, 16px fields, Groq filter chip (commits `282bf3c`, `4a68035`, `04470e5`).
+- [x] Auth fixes: BYOK disconnect stacked on phones (`d8afb2d`); Supabase errors as translatable codes ES/EN/FR/PT (`1a3b092`); `expired` notice only with prior session cookie (`f40d832`).
 - [ ] Clipboard API rejection handling.
 
 ### Phase 11: Testing
