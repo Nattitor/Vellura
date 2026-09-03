@@ -213,14 +213,14 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
     return (
       <div className="w-full space-y-8 animate-in fade-in duration-300">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
-            <History className="w-8 h-8 text-cyan-400" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
+            <History className="w-7 h-7 sm:w-8 sm:h-8 text-cyan-400" />
             {t.history.title}
           </h1>
           <p className="text-zinc-400 text-sm">{t.history.subtitle}</p>
         </div>
 
-        <div className="flex flex-col items-center justify-center p-16 ethereal-panel rounded-2xl border border-white/10 relative overflow-hidden group shadow-2xl">
+        <div className="flex flex-col items-center justify-center p-8 sm:p-16 ethereal-panel rounded-2xl border border-white/10 relative overflow-hidden group shadow-2xl">
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="relative group-hover:scale-105 transition-transform duration-500">
             <div className="absolute inset-0 bg-cyan-500/20 blur-xl rounded-full" />
@@ -228,7 +228,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
               <FileText className="w-10 h-10 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
             </div>
           </div>
-          <h3 className="text-2xl font-semibold text-white mt-8 mb-2 z-10">{t.history.emptyTitle}</h3>
+          <h3 className="text-xl sm:text-2xl font-semibold text-white mt-8 mb-2 z-10">{t.history.emptyTitle}</h3>
           <p className="text-zinc-400 text-center max-w-md z-10 text-sm leading-relaxed">
             {t.history.emptySubtitle}
           </p>
@@ -243,8 +243,8 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
       {/* Header & Page Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-1 flex items-center gap-3">
-            <History className="w-8 h-8 text-cyan-400" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-1 flex items-center gap-3">
+            <History className="w-7 h-7 sm:w-8 sm:h-8 text-cyan-400" />
             {t.history.title}
           </h1>
           <p className="text-zinc-400 text-sm">{t.history.subtitle}</p>
@@ -295,13 +295,13 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
               placeholder={t.history.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="bg-zinc-900/80 border-white/10 text-white pl-10 pr-9 h-10 text-xs rounded-xl focus-visible:ring-cyan-500 placeholder:text-zinc-500 w-full"
+              className="bg-zinc-900/80 border-white/10 text-white pl-10 pr-11 h-12 text-base sm:h-10 sm:text-xs rounded-xl focus-visible:ring-cyan-500 placeholder:text-zinc-500 w-full"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => handleSearchChange("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white cursor-pointer"
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white cursor-pointer touch-target flex items-center justify-center"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -317,7 +317,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
                   key={size}
                   type="button"
                   onClick={() => { setPageSize(size); setCurrentPage(1); }}
-                  className={`px-2.5 py-1 text-xs rounded-lg font-semibold transition-all cursor-pointer ${
+                  className={`min-h-[40px] min-w-[40px] px-3 text-xs rounded-lg font-semibold transition-all cursor-pointer ${
                     pageSize === size 
                       ? "bg-cyan-500 text-zinc-950 shadow-sm" 
                       : "text-zinc-400 hover:text-white"
@@ -331,9 +331,10 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
         </div>
 
         {/* Filter Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {[
             { id: "all", label: t.history.filterAll || "All Models", count: providerCounts.all },
+            { id: "groq", label: "Groq", count: providerCounts.groq },
             { id: "google", label: "Google Gemini", count: providerCounts.google },
             { id: "openai", label: "OpenAI", count: providerCounts.openai },
             { id: "anthropic", label: "Anthropic Claude", count: providerCounts.anthropic },
@@ -348,7 +349,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
                 key={tab.id}
                 type="button"
                 onClick={() => handleProviderFilterChange(tab.id)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`min-h-[40px] px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
                   isSelected
                     ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
                     : "bg-zinc-900/80 text-zinc-400 hover:text-white border border-white/5 hover:bg-zinc-800/80"
@@ -370,7 +371,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
       <div className="w-full flex flex-col ethereal-panel rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-950/60">
         
         {/* Table Header Bar */}
-        <div className="flex items-center px-6 py-3.5 border-b border-white/10 bg-zinc-900/50 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+        <div className="flex items-center px-4 sm:px-6 py-3.5 border-b border-white/10 bg-zinc-900/50 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
           <div className="w-8 shrink-0"></div>
           <div className="flex-1 min-w-0">{t.history.colCompany}</div>
           <div className="w-36 hidden sm:block">{t.history.colModel}</div>
@@ -410,7 +411,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
                 {/* Inbox Row */}
                 <div
                   className={cn(
-                    "flex items-center px-6 py-4 hover:bg-zinc-900/60 transition-colors w-full cursor-pointer",
+                    "flex items-center px-4 sm:px-6 py-4 hover:bg-zinc-900/60 transition-colors w-full cursor-pointer",
                     isExpanded ? "bg-zinc-900/40" : ""
                   )}
                   onClick={() => setExpandedId(isExpanded ? null : doc.id)}
@@ -463,14 +464,14 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
                       type="button"
                       title={t.history.deleteBtn || "Delete"}
                       onClick={() => setDocToDelete(doc)}
-                      className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
+                      className="touch-target p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer flex items-center justify-center"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       type="button"
                       onClick={() => setExpandedId(isExpanded ? null : doc.id)}
-                      className="px-2 py-1 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+                      className="min-h-[44px] px-3 py-1 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
                     >
                       {isExpanded ? (t.history.hideDetails || "Hide") : (t.history.viewDetails || "View")}
                     </button>
@@ -479,7 +480,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
 
                 {/* Expanded Document View */}
                 {isExpanded && (
-                  <div className="w-full bg-zinc-950/90 border-t border-b border-white/10 p-6 sm:p-8 animate-in slide-in-from-top-2 fade-in duration-300">
+                  <div className="w-full bg-zinc-950/90 border-t border-b border-white/10 p-4 sm:p-8 animate-in slide-in-from-top-2 fade-in duration-300">
                     <div className="max-w-4xl mx-auto space-y-6">
                       
                       {/* Document Meta Header Bar */}
@@ -510,7 +511,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
                           <Button
                             type="button"
                             onClick={() => handleCopy(doc.generated_content, doc.id)}
-                            className="bg-zinc-900 hover:bg-zinc-800 text-white text-xs px-3.5 py-1.5 h-8 rounded-xl border border-white/10 flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                            className="bg-zinc-900 hover:bg-zinc-800 text-white text-xs px-4 h-11 rounded-xl border border-white/10 flex flex-1 sm:flex-none items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
                           >
                             {copiedId === doc.id ? (
                               <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -524,7 +525,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
                             type="button"
                             onClick={() => handleDownloadPDF(doc.generated_content, doc.id)}
                             disabled={downloadingId === doc.id}
-                            className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3.5 py-1.5 h-8 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(6,182,212,0.25)] active:scale-95 transition-all"
+                            className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-4 h-11 rounded-xl flex flex-1 sm:flex-none items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(6,182,212,0.25)] active:scale-95 transition-all"
                           >
                             <Download className={cn("w-3.5 h-3.5", downloadingId === doc.id && "animate-bounce")} />
                             <span>{t.history.pdfBtn}</span>
@@ -534,7 +535,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
                             type="button"
                             variant="ghost"
                             onClick={() => setDocToDelete(doc)}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs px-3 py-1.5 h-8 rounded-xl cursor-pointer"
+                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs px-3 h-11 w-11 justify-center rounded-xl cursor-pointer flex items-center"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
@@ -542,7 +543,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
                       </div>
 
                       {/* Document Content Paper Card */}
-                      <div className="bg-zinc-900/40 p-6 sm:p-10 rounded-2xl border border-white/10 shadow-inner max-h-[700px] overflow-y-auto ethereal-scrollbar">
+                      <div className="bg-zinc-900/40 p-4 sm:p-10 rounded-2xl border border-white/10 shadow-inner max-h-[700px] overflow-y-auto ethereal-scrollbar">
                         <article className="prose prose-invert prose-p:font-serif prose-headings:font-serif prose-sm sm:prose-base max-w-none text-zinc-200 leading-relaxed font-serif">
                           <ReactMarkdown>
                             {doc.generated_content.replace(/<!--[\s\S]*?-->/g, "").trim()}
@@ -560,7 +561,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
 
         {/* Luxury Pagination Footer */}
         {filteredDocuments.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-white/10 bg-zinc-900/60">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 sm:px-6 py-4 border-t border-white/10 bg-zinc-900/60">
             {/* Showing Range Info */}
             <div className="text-xs text-zinc-400 font-medium">
               <span>{t.history.showingResults} </span>
@@ -581,7 +582,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
                 size="sm"
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="h-8 px-2.5 border-white/10 hover:bg-white/5 text-xs text-zinc-300 disabled:opacity-30 rounded-lg cursor-pointer flex items-center gap-1"
+                className="h-11 sm:h-8 px-3 sm:px-2.5 border-white/10 hover:bg-white/5 text-xs text-zinc-300 disabled:opacity-30 rounded-lg cursor-pointer flex items-center gap-1"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">{t.history.prevPage}</span>
@@ -609,7 +610,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
                       key={pageNum}
                       type="button"
                       onClick={() => handlePageChange(pageNum)}
-                      className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center ${
+                      className={`w-11 h-11 sm:w-8 sm:h-8 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center ${
                         isActive
                           ? "bg-cyan-500 text-zinc-950 font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]"
                           : "text-zinc-400 hover:text-white hover:bg-white/10"
@@ -628,7 +629,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
                 size="sm"
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="h-8 px-2.5 border-white/10 hover:bg-white/5 text-xs text-zinc-300 disabled:opacity-30 rounded-lg cursor-pointer flex items-center gap-1"
+                className="h-11 sm:h-8 px-3 sm:px-2.5 border-white/10 hover:bg-white/5 text-xs text-zinc-300 disabled:opacity-30 rounded-lg cursor-pointer flex items-center gap-1"
               >
                 <span className="hidden sm:inline">{t.history.nextPage}</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -641,7 +642,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
 
       {/* Delete Confirmation Modal */}
       <Dialog open={!!docToDelete} onOpenChange={(open) => !open && setDocToDelete(null)}>
-        <DialogContent className="bg-zinc-950 border border-red-500/30 text-white sm:max-w-md p-6 rounded-2xl shadow-2xl">
+        <DialogContent className="bg-zinc-950 border border-red-500/30 text-white w-[calc(100vw-2rem)] sm:max-w-md p-4 sm:p-6 rounded-2xl shadow-2xl">
           <DialogHeader className="space-y-3">
             <div className="mx-auto w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
               <Trash2 className="w-6 h-6" />
@@ -668,7 +669,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
               variant="outline"
               onClick={() => setDocToDelete(null)}
               disabled={isDeleting}
-              className="flex-1 border-white/10 hover:bg-white/5 text-zinc-300 text-xs rounded-xl cursor-pointer"
+              className="flex-1 border-white/10 hover:bg-white/5 text-zinc-300 text-xs h-11 rounded-xl cursor-pointer"
             >
               {t.history.cancelDeleteBtn || "Cancel"}
             </Button>
@@ -676,7 +677,7 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
               type="button"
               onClick={handleDeleteConfirm}
               disabled={isDeleting}
-              className="flex-1 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-xl cursor-pointer shadow-[0_0_15px_rgba(239,68,68,0.3)] active:scale-95"
+              className="flex-1 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold h-11 rounded-xl cursor-pointer shadow-[0_0_15px_rgba(239,68,68,0.3)] active:scale-95"
             >
               {isDeleting ? (t.history.deletingBtn || "Deleting...") : (t.history.deleteBtn || "Delete")}
             </Button>
