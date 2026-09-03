@@ -17,6 +17,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/language-provider";
+import { translateAuthError } from "@/utils/i18n/auth-errors";
 import { toast } from "sonner";
 
 interface AuthDetails {
@@ -55,8 +56,9 @@ export function AccountSecurityForm({ authDetails }: { authDetails?: AuthDetails
     startTransition(async () => {
       const result = await updateUserPassword(formData);
       if (result.error) {
-        setError(result.error);
-        toast.error(`Error: ${result.error}`);
+        const msg = translateAuthError(t.auth, result.error);
+        setError(msg);
+        toast.error(`Error: ${msg}`);
       } else {
         setHasPasswordLocal(true);
         setNewPassword("");

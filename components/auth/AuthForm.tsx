@@ -20,6 +20,7 @@ import {
   EyeOff
 } from "lucide-react";
 import { useLanguage } from "@/components/providers/language-provider";
+import { translateAuthError } from "@/utils/i18n/auth-errors";
 import { toast } from "sonner";
 
 type AuthMode = "login" | "signup" | "forgot";
@@ -35,7 +36,7 @@ export function AuthForm() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(urlError ? "Could not authenticate. Please try again." : null);
+  const [error, setError] = useState<string | null>(urlError ? translateAuthError(t.auth, "AUTH_GENERIC") : null);
   
   // Success states
   const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
@@ -58,12 +59,12 @@ export function AuthForm() {
       if (mode === "login") {
         const result = await login(formData);
         if (result?.error) {
-          setError(result.error);
+          setError(translateAuthError(t.auth, result.error));
         }
       } else if (mode === "signup") {
         const result = await signup(formData);
         if (result?.error) {
-          setError(result.error);
+          setError(translateAuthError(t.auth, result.error));
         } else if (result?.requiresVerification) {
           setVerificationEmail(result.email || "");
           toast.success(t.auth.checkEmailTitle || "Revisa tu correo para confirmar tu cuenta.");
@@ -71,7 +72,7 @@ export function AuthForm() {
       } else if (mode === "forgot") {
         const result = await requestPasswordReset(formData);
         if (result?.error) {
-          setError(result.error);
+          setError(translateAuthError(t.auth, result.error));
         } else {
           setResetEmailSent(true);
           toast.success(t.auth.resetEmailSentTitle || "Enlace de recuperación enviado");
@@ -85,8 +86,9 @@ export function AuthForm() {
     startTransition(async () => {
       const result = await signInWithGoogle();
       if (result?.error) {
-        setError(result.error);
-        toast.error(`Error con Google: ${result.error}`);
+        const msg = translateAuthError(t.auth, result.error);
+        setError(msg);
+        toast.error(`Error con Google: ${msg}`);
       }
     });
   };

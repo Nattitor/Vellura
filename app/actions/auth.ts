@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { languageTypeToBcp47 } from "@/utils/i18n/bcp47";
 import { LanguageType } from "@/utils/i18n/dictionaries";
+import { toAuthErrorCode } from "@/utils/i18n/auth-errors";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -18,7 +19,7 @@ export async function login(formData: FormData) {
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: toAuthErrorCode(error.message) };
   }
 
   // Clean bloated base64 from user_metadata if it was previously set
@@ -57,11 +58,11 @@ export async function signup(formData: FormData) {
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: toAuthErrorCode(error.message) };
   }
 
   if (data?.user?.identities?.length === 0) {
-    return { error: "This email is already registered. Please sign in or reset your password." };
+    return { error: "EMAIL_EXISTS" };
   }
 
   if (!data.session) {
@@ -81,7 +82,7 @@ export async function requestPasswordReset(formData: FormData) {
   const email = (formData.get("email") as string)?.trim();
 
   if (!email) {
-    return { error: "Please enter a valid email address." };
+    return { error: "INVALID_EMAIL" };
   }
 
   const headerList = await headers();
@@ -94,7 +95,7 @@ export async function requestPasswordReset(formData: FormData) {
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: toAuthErrorCode(error.message) };
   }
 
   return { success: true };
@@ -105,18 +106,18 @@ export async function updateUserPassword(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: "You must be signed in to change your password." };
+    return { error: "NOT_SIGNED_IN" };
   }
 
   const newPassword = formData.get("newPassword") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
 
   if (!newPassword || newPassword.length < 6) {
-    return { error: "Password must be at least 6 characters long." };
+    return { error: "WEAK_PASSWORD" };
   }
 
   if (newPassword !== confirmPassword) {
-    return { error: "Passwords do not match." };
+    return { error: "PASSWORD_MISMATCH" };
   }
 
   const { error } = await supabase.auth.updateUser({
@@ -124,7 +125,7 @@ export async function updateUserPassword(formData: FormData) {
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: toAuthErrorCode(error.message) };
   }
 
   revalidatePath("/dashboard/settings");
@@ -169,7 +170,7 @@ export async function signInWithGoogle() {
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: toAuthErrorCode(error.message) };
   }
 
   if (data.url) {
