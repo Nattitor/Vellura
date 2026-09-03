@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sheet,
@@ -87,6 +87,7 @@ export function ModelSelectionDrawer({
   const [directives, setDirectives] = useState(initialDirectives);
   const [showBYOKWarning, setShowBYOKWarning] = useState(false);
   const [isCompact, setIsCompact] = useState(false);
+  const pillsRef = useRef<HTMLDivElement>(null);
 
   // Sync state when opened
   const handleOpenState = (newOpen: boolean) => {
@@ -120,6 +121,15 @@ export function ModelSelectionDrawer({
       return true;
     });
   }, [activeFilter, searchQuery]);
+
+  // Keep the active filter pill visible in the single-row swipe strip (mobile)
+  useEffect(() => {
+    const el = pillsRef.current?.querySelector('[data-active="true"]');
+    if (el) {
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", inline: "center", block: "nearest" });
+    }
+  }, [activeFilter]);
 
   const handleSelectModel = (model: AIModelDefinition) => {
     setCurrentModel(model.id);
@@ -251,7 +261,7 @@ export function ModelSelectionDrawer({
 
             {/* Search & Filter pills (Visible only on Models Tab) */}
             {activeTab === "models" && (
-              <div className="space-y-3 pt-1 animate-in fade-in duration-150">
+              <div className="space-y-2 sm:space-y-3 pt-1 animate-in fade-in duration-150">
                 {/* Search Box */}
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
@@ -264,11 +274,12 @@ export function ModelSelectionDrawer({
                   />
                 </div>
 
-                {/* Filter Pills (wrapped — all providers visible, no hidden horizontal scroll) */}
-                <div className="flex flex-wrap items-center gap-1.5 pb-1">
+                {/* Filter Pills (single swipe row on phones, wrapped grid on sm+) */}
+                <div ref={pillsRef} className="flex flex-nowrap sm:flex-wrap items-center gap-1.5 pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <button
                     type="button"
                     onClick={() => setActiveFilter("all")}
+                    data-active={activeFilter === "all" ? "true" : undefined}
                     className={`inline-flex items-center min-h-[40px] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                       activeFilter === "all"
                         ? "bg-white text-zinc-950 shadow-[0_0_12px_rgba(255,255,255,0.2)]"
@@ -285,6 +296,7 @@ export function ModelSelectionDrawer({
                         key={p.id}
                         type="button"
                         onClick={() => setActiveFilter(p.id)}
+                        data-active={activeFilter === p.id ? "true" : undefined}
                         className={`inline-flex items-center min-h-[40px] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all gap-1.5 cursor-pointer ${
                           activeFilter === p.id
                             ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
