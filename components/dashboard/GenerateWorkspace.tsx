@@ -69,6 +69,8 @@ export function GenerateWorkspace({
   const [jobDescription, setJobDescription] = useState("");
   const [copied, setCopied] = useState(false);
   const [isExpandModalOpen, setIsExpandModalOpen] = useState(false);
+  // F2 mobile: the (i) tooltip is hover-only on desktop — on touch it toggles by tap.
+  const [showContextTip, setShowContextTip] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -316,11 +318,13 @@ export function GenerateWorkspace({
                 <button
                   type="button"
                   aria-label="Información de contexto"
-                  className="w-5 h-5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-help"
+                  aria-expanded={showContextTip}
+                  onClick={() => setShowContextTip((v) => !v)}
+                  className="touch-target w-5 h-5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-help"
                 >
-                  <Info className="w-3 h-3" />
+                  <Info className="w-4 h-4" />
                 </button>
-                <div className="absolute left-0 top-full mt-2 hidden group-hover/tooltip:block w-64 p-2.5 bg-zinc-950/95 border border-white/15 rounded-xl text-[11px] text-zinc-300 shadow-2xl z-50 backdrop-blur-md leading-relaxed animate-in fade-in zoom-in-95 duration-150 pointer-events-none">
+                <div className={`absolute left-0 top-full mt-2 ${showContextTip ? "block" : "hidden"} group-hover/tooltip:block w-64 max-w-[calc(100vw-3rem)] p-2.5 bg-zinc-950/95 border border-white/15 rounded-xl text-[11px] text-zinc-300 shadow-2xl z-50 backdrop-blur-md leading-relaxed animate-in fade-in zoom-in-95 duration-150 pointer-events-none`}>
                   {t.workspace.jobContextDesc}
                 </div>
               </div>
@@ -351,7 +355,7 @@ export function GenerateWorkspace({
                 {t.workspace.toneLabel}
               </label>
               <Select value={tone} onValueChange={(val) => val && setTone(val)}>
-                <SelectTrigger className="w-full h-10 bg-zinc-900/50 border-white/10 text-white text-sm focus:ring-amethyst-glow transition-all">
+                <SelectTrigger className="w-full h-12 bg-zinc-900/50 border-white/10 text-white text-base sm:text-sm focus:ring-amethyst-glow transition-all">
                   <SelectValue placeholder={t.workspace.toneSelectPlaceholder}>
                     {toneLabels[tone] || t.workspace.toneProfessional}
                   </SelectValue>
@@ -384,7 +388,7 @@ export function GenerateWorkspace({
                 </div>
 
                 <Select value={modelPref} onValueChange={(val: any) => setModelPref(val)}>
-                  <SelectTrigger className="w-full h-10 bg-zinc-900/50 border-white/10 text-white text-sm focus:ring-cyan-500 transition-all">
+                  <SelectTrigger className="w-full h-12 bg-zinc-900/50 border-white/10 text-white text-base sm:text-sm focus:ring-cyan-500 transition-all">
                     <SelectValue placeholder="Select mode">
                       {modelPref === "speed" ? t.workspace.modelSpeedLabel : t.workspace.modelReasoningLabel}
                     </SelectValue>
@@ -425,7 +429,7 @@ export function GenerateWorkspace({
                 <button
                   type="button"
                   onClick={() => setIsDrawerOpen(true)}
-                  className="w-full h-10 bg-cyan-950/20 hover:bg-cyan-950/40 border border-cyan-500/40 hover:border-cyan-400 rounded-lg px-3.5 flex items-center justify-between text-white text-xs font-mono transition-all group/btn cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.1)]"
+                  className="w-full h-12 bg-cyan-950/20 hover:bg-cyan-950/40 border border-cyan-500/40 hover:border-cyan-400 rounded-lg px-3.5 flex items-center justify-between text-white text-xs font-mono transition-all group/btn cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.1)]"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.8)] shrink-0" />
@@ -479,7 +483,7 @@ export function GenerateWorkspace({
                     setJobDescription(e.target.value);
                     if (apiError) setApiError(null);
                   }}
-                  className="w-full flex-1 min-h-0 resize-none bg-zinc-900/40 border-white/10 hover:border-white/15 focus:border-white/25 text-white placeholder:text-zinc-500 focus-visible:ring-1 focus-visible:ring-white/15 rounded-xl text-xs sm:text-sm p-4 leading-relaxed font-sans ethereal-scrollbar transition-all shadow-none"
+                  className="w-full flex-1 min-h-0 resize-none bg-zinc-900/40 border-white/10 hover:border-white/15 focus:border-white/25 text-white placeholder:text-zinc-500 focus-visible:ring-1 focus-visible:ring-white/15 rounded-xl text-base sm:text-sm p-4 leading-relaxed font-sans ethereal-scrollbar transition-all shadow-none"
                 />
               </div>
 
@@ -492,8 +496,8 @@ export function GenerateWorkspace({
 
           </div>
 
-            {/* Submit Button (Pinned Bottom) */}
-          <div className="pt-4 shrink-0 border-t border-white/5 mt-2">
+            {/* Submit Button (sticky above the tab bar on phones, static on desktop) */}
+          <div className="pt-3 pb-1 mt-2 shrink-0 border-t border-white/5 bg-zinc-950/90 backdrop-blur-md z-10 rounded-b-xl sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:static lg:bg-transparent lg:backdrop-blur-none lg:rounded-none lg:pt-4 lg:pb-0">
             <Button
               onClick={handleGenerate}
               disabled={isLoading || !jobDescription.trim()}
@@ -524,19 +528,19 @@ export function GenerateWorkspace({
       {/* Right Column: Output Display (Full Height Matching Flexbox) */}
       <div 
         ref={outputRef}
-        className="w-full lg:w-2/3 ethereal-panel rounded-xl flex flex-col h-full min-h-[450px] lg:min-h-0 relative overflow-hidden group"
+        className="w-full lg:w-2/3 ethereal-panel rounded-xl flex flex-col h-full min-h-[60dvh] lg:min-h-0 relative overflow-hidden group"
       >
         {/* Subtle dynamic background glow */}
         <div className="absolute top-0 right-0 -mr-24 -mt-24 w-96 h-96 bg-amethyst-glow/5 rounded-full blur-3xl pointer-events-none group-hover:bg-amethyst-glow/10 transition-colors duration-1000" />
         
-        {/* Glassmorphic Top Bar with Document Identity and Actions */}
-        <div className="absolute top-0 left-0 right-0 px-4 py-3 bg-zinc-950/85 backdrop-blur-md z-20 flex items-center justify-between border-b border-white/5 gap-3">
+        {/* Glassmorphic Top Bar: 2 rows on phones (title / full-width actions), 1 row on sm+ */}
+        <div className="absolute top-0 left-0 right-0 px-4 py-3 bg-zinc-950/85 backdrop-blur-md z-20 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between border-b border-white/5 sm:gap-3">
           {/* Left: Document Target & Metadata info */}
           <div className="flex items-center gap-2.5 min-w-0">
             {cleanCompletion ? (
               <div className="flex items-center gap-2 min-w-0">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                <span className="text-xs font-semibold text-white truncate max-w-[180px] sm:max-w-xs md:max-w-md">
+                <span className="text-xs font-semibold text-white truncate max-w-full sm:max-w-xs md:max-w-md">
                   {detectedTarget || t.workspace.defaultDocTitle || "Executive Cover Letter"}
                 </span>
                 <span className="text-[10px] text-zinc-400 font-mono px-2 py-0.5 rounded-full bg-white/5 border border-white/10 hidden sm:inline-flex items-center shrink-0">
@@ -551,15 +555,15 @@ export function GenerateWorkspace({
             )}
           </div>
 
-          {/* Right: Actions Toolbar */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Right: Actions Toolbar (2-col grid on phones, inline on sm+) */}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2 sm:shrink-0">
             {cleanCompletion && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={handleDownloadPDF}
                 disabled={isLoading || isDownloadingPDF}
-                className="h-8 px-3 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 hover:text-white border-white/10 text-xs font-medium rounded-lg cursor-pointer transition-all shadow-sm flex items-center gap-1.5 active:scale-95"
+                className="h-11 sm:h-8 w-full sm:w-auto justify-center px-3 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 hover:text-white border-white/10 text-xs font-medium rounded-lg cursor-pointer transition-all shadow-sm flex items-center gap-1.5 active:scale-95"
                 title="Descargar PDF"
               >
                 {isDownloadingPDF ? (
@@ -567,7 +571,7 @@ export function GenerateWorkspace({
                 ) : (
                   <Download className="w-3.5 h-3.5 text-cyan-400" />
                 )}
-                <span className="hidden sm:inline">PDF</span>
+                <span>PDF</span>
               </Button>
             )}
 
@@ -577,7 +581,7 @@ export function GenerateWorkspace({
               onClick={handleCopy}
               disabled={!cleanCompletion || isLoading || !!activeError}
               className={cn(
-                "h-8 px-3 text-xs font-semibold rounded-lg cursor-pointer transition-all active:scale-95 flex items-center gap-1.5 shadow-sm",
+                "h-11 sm:h-8 w-full sm:w-auto justify-center px-3 text-xs font-semibold rounded-lg cursor-pointer transition-all active:scale-95 flex items-center gap-1.5 shadow-sm",
                 copied 
                   ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" 
                   : "bg-white/10 hover:bg-white/20 text-white border border-white/10"
@@ -634,7 +638,7 @@ export function GenerateWorkspace({
                         setApiError(null);
                         setIsDrawerOpen(true);
                       }}
-                      className="w-full h-10 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all flex items-center justify-center gap-1.5"
+                      className="w-full h-11 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all flex items-center justify-center gap-1.5"
                     >
                       <Sliders className="w-3.5 h-3.5" />
                       <span>{t.workspace.switchModelBtn || "Cambiar Modelo"}</span>
@@ -643,7 +647,7 @@ export function GenerateWorkspace({
                       type="button"
                       variant="outline"
                       onClick={() => router.push("/dashboard/settings?tab=advanced")}
-                      className="w-full h-10 bg-zinc-900/80 hover:bg-zinc-800 border-white/10 hover:border-white/20 text-zinc-200 hover:text-white text-xs font-semibold rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                      className="w-full h-11 bg-zinc-900/80 hover:bg-zinc-800 border-white/10 hover:border-white/20 text-zinc-200 hover:text-white text-xs font-semibold rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm"
                     >
                       <Key className="w-3.5 h-3.5 text-cyan-400" />
                       <span>{t.workspace.checkApiKeysBtn || "Revisar Claves API"}</span>
@@ -654,7 +658,7 @@ export function GenerateWorkspace({
                     <Button
                       type="button"
                       onClick={() => handleGenerate()}
-                      className="w-full h-10 bg-amethyst-glow hover:bg-amethyst-glow/90 text-white text-xs font-semibold rounded-xl cursor-pointer shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all flex items-center justify-center gap-1.5"
+                      className="w-full h-11 bg-amethyst-glow hover:bg-amethyst-glow/90 text-white text-xs font-semibold rounded-xl cursor-pointer shadow-[0_0_15px_rgba(139,92,246,0.3)] transition-all flex items-center justify-center gap-1.5"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                       <span>{t.workspace.retryGenerationBtn || "Reintentar Generación"}</span>
@@ -666,7 +670,7 @@ export function GenerateWorkspace({
                         setApiError(null);
                         setIsDrawerOpen(true);
                       }}
-                      className="w-full h-10 bg-zinc-900/80 hover:bg-zinc-800 border-white/10 hover:border-white/20 text-zinc-200 hover:text-white text-xs font-semibold rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                      className="w-full h-11 bg-zinc-900/80 hover:bg-zinc-800 border-white/10 hover:border-white/20 text-zinc-200 hover:text-white text-xs font-semibold rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-sm"
                     >
                       <Sliders className="w-3.5 h-3.5 text-cyan-400" />
                       <span>{t.workspace.switchModelBtn || "Cambiar Modelo"}</span>
@@ -676,7 +680,7 @@ export function GenerateWorkspace({
               </div>
             </div>
           ) : cleanCompletion ? (
-            <div className="pt-16 sm:pt-20 px-3 sm:px-8 pb-16">
+            <div className="pt-32 sm:pt-20 px-3 sm:px-8 pb-16">
               {/* Executive Manuscript Paper Canvas */}
               <div className="max-w-2xl mx-auto bg-zinc-950/80 border border-white/10 rounded-2xl p-6 sm:p-12 shadow-[0_15px_50px_rgba(0,0,0,0.7)] backdrop-blur-md relative overflow-hidden group/sheet">
                 {/* Subtle top ambient glowing hairline */}
@@ -769,7 +773,7 @@ export function GenerateWorkspace({
 
       {/* Expanded Job Description Dialog */}
       <Dialog open={isExpandModalOpen} onOpenChange={setIsExpandModalOpen}>
-        <DialogContent className="bg-zinc-950 border border-white/15 text-white sm:max-w-3xl md:max-w-4xl p-6 rounded-2xl shadow-2xl">
+        <DialogContent className="bg-zinc-950 border border-white/15 text-white w-[calc(100vw-2rem)] sm:w-full sm:max-w-3xl md:max-w-4xl max-h-[85dvh] flex flex-col p-4 sm:p-6 rounded-2xl shadow-2xl gap-0">
           <DialogHeader className="space-y-1">
             <div className="flex items-center justify-between">
               <DialogTitle className="text-lg font-semibold text-white flex items-center gap-2">
@@ -785,23 +789,23 @@ export function GenerateWorkspace({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4">
+          <div className="py-4 flex-1 min-h-0 flex flex-col">
             <Textarea
               placeholder={t.workspace.placeholder}
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
-              className="w-full h-[380px] md:h-[480px] bg-zinc-900/60 border-white/10 text-white placeholder:text-zinc-500 focus-visible:ring-1 focus-visible:ring-white/15 focus:border-white/25 rounded-xl text-sm p-4 leading-relaxed font-sans resize-none ethereal-scrollbar"
+              className="w-full h-[45dvh] md:h-[480px] bg-zinc-900/60 border-white/10 text-white placeholder:text-zinc-500 focus-visible:ring-1 focus-visible:ring-white/15 focus:border-white/25 rounded-xl text-base sm:text-sm p-4 leading-relaxed font-sans resize-none ethereal-scrollbar"
             />
           </div>
 
-          <div className="flex items-center justify-between border-t border-white/10 pt-4">
-            <span className="text-xs text-zinc-400">
+          <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+            <span className="text-xs text-zinc-400 hidden min-[420px]:block">
               {t.workspace.expandDesc}
             </span>
             <Button
               type="button"
               onClick={() => setIsExpandModalOpen(false)}
-              className="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-5 py-2 rounded-xl cursor-pointer"
+              className="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-5 h-11 w-full min-[420px]:w-auto rounded-xl cursor-pointer"
             >
               {t.workspace.done}
             </Button>
