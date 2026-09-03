@@ -214,7 +214,7 @@ export function OnboardingWizard({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-xl animate-in fade-in duration-300">
+      <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 sm:p-6 bg-black/85 backdrop-blur-xl animate-in fade-in duration-300">
         {/* Glow backdrop behind modal */}
         <div className="absolute w-[500px] h-[500px] bg-amethyst-glow/15 rounded-full blur-[140px] pointer-events-none" />
 
@@ -223,7 +223,7 @@ export function OnboardingWizard({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="relative w-full sm:max-w-2xl max-h-[90dvh] bg-zinc-950/95 border border-white/10 rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden text-white z-10"
+          className="relative w-full sm:max-w-2xl max-h-[90vh] max-h-[90dvh] m-auto bg-zinc-950/95 border border-white/10 rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden text-white z-10"
         >
           {/* Top glowing hairline */}
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amethyst-glow via-cyan-400 to-amethyst-glow z-20" />
