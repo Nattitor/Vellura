@@ -33,6 +33,8 @@ export function AdvancedBYOKForm({ initialConfiguredProviders = [] }: { initialC
         return t.settings.providerDeepSeekDesc || AI_PROVIDERS.deepseek.description;
       case "openrouter":
         return t.settings.providerOpenRouterDesc || AI_PROVIDERS.openrouter.description;
+      case "groq":
+        return AI_PROVIDERS.groq.description;
       default:
         return "";
     }
@@ -70,7 +72,7 @@ export function AdvancedBYOKForm({ initialConfiguredProviders = [] }: { initialC
     });
   };
 
-  const providerList: AIProviderId[] = ["google", "openai", "anthropic", "deepseek", "openrouter"];
+  const providerList: AIProviderId[] = ["google", "groq", "openai", "anthropic", "deepseek", "openrouter"];
 
   return (
     <div className="w-full ethereal-panel p-6 md:p-8 rounded-xl flex flex-col space-y-6 relative overflow-hidden">

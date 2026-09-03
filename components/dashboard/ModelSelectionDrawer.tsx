@@ -34,6 +34,7 @@ import {
   Key,
   KeyRound,
   ShieldAlert,
+  ShieldCheck,
   ArrowRight,
 } from "lucide-react";
 import { 
@@ -155,12 +156,12 @@ export function ModelSelectionDrawer({
   };
 
   const handleResetToStandard = () => {
-    commitApply(DEFAULT_SPEED_MODEL, "google", 0.7, "", false);
+    commitApply(DEFAULT_SPEED_MODEL, "groq", 0.7, "", false);
   };
 
   const handleSelectFreeAndApply = () => {
     setShowBYOKWarning(false);
-    commitApply(DEFAULT_SPEED_MODEL, "google", 0.7, "", false);
+    commitApply(DEFAULT_SPEED_MODEL, "groq", 0.7, "", false);
   };
 
   const handleGoToSettings = () => {
@@ -181,6 +182,8 @@ export function ModelSelectionDrawer({
         return <Zap className="w-4 h-4 text-blue-400" />;
       case "openrouter":
         return <Globe className="w-4 h-4 text-purple-400" />;
+      case "groq":
+        return <Zap className="w-4 h-4 text-orange-400" />;
       default:
         return <Cpu className="w-4 h-4 text-zinc-400" />;
     }
@@ -255,8 +258,8 @@ export function ModelSelectionDrawer({
                   />
                 </div>
 
-                {/* Filter Pills */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {/* Filter Pills (wrapped — all providers visible, no hidden horizontal scroll) */}
+                <div className="flex flex-wrap items-center gap-1.5 pb-1">
                   <button
                     type="button"
                     onClick={() => setActiveFilter("all")}
@@ -282,7 +285,7 @@ export function ModelSelectionDrawer({
                             : "bg-zinc-900/80 text-zinc-400 hover:text-white border border-white/5"
                         }`}
                       >
-                        <span>{p.name.split(" ")[0]}</span>
+                        <span>{p.name}</span>
                         <span className="text-[10px] opacity-70">({count})</span>
                       </button>
                     );
@@ -296,7 +299,14 @@ export function ModelSelectionDrawer({
           <div className="flex-1 min-h-0 overflow-y-auto p-6">
             {activeTab === "models" ? (
               /* TAB 1: MODEL CATALOG (Google AI Studio Cards) */
-              <div className="grid grid-cols-1 gap-3 pb-4">
+              <div className="space-y-3 pb-4">
+                {/* Privacy & Zero-Retention Notice */}
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-[11px] text-zinc-300 leading-relaxed">
+                  <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                  <span>{t.workspace.freeModelPrivacyNotice}</span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
                 {filteredModels.map((m) => {
                   const isSelected = currentModel === m.id;
                   const isBYOK = !m.isFree;
@@ -398,6 +408,7 @@ export function ModelSelectionDrawer({
                     </button>
                   </div>
                 )}
+                </div>
               </div>
             ) : (
               /* TAB 2: ADVANCED GENERATION PARAMETERS */
@@ -406,7 +417,7 @@ export function ModelSelectionDrawer({
                 {/* Currently Selected Model Summary Card */}
                 <div className="p-4 rounded-xl bg-zinc-900/50 border border-white/10 space-y-2">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                    Modelo Seleccionado Actualmente
+                    {t.workspace.selectedModelTitle || "Modelo Seleccionado Actualmente"}
                   </span>
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
@@ -415,7 +426,7 @@ export function ModelSelectionDrawer({
                       </div>
                       <div>
                         <h4 className="text-sm font-semibold text-white truncate">{selectedModelObj?.name || currentModel}</h4>
-                        <p className="text-xs text-zinc-400 font-mono">Proveedor: {currentProvider}</p>
+                        <p className="text-xs text-zinc-400 font-mono">{t.workspace.providerLabel || "Proveedor"}: {currentProvider}</p>
                       </div>
                     </div>
                     <button
@@ -423,7 +434,7 @@ export function ModelSelectionDrawer({
                       onClick={() => setActiveTab("models")}
                       className="text-xs text-cyan-400 hover:underline cursor-pointer font-medium"
                     >
-                      Cambiar modelo
+                      {t.workspace.switchModelBtn || "Cambiar modelo"}
                     </button>
                   </div>
                 </div>
@@ -433,7 +444,7 @@ export function ModelSelectionDrawer({
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-semibold text-white">{t.workspace.creativity}</h4>
-                      <p className="text-xs text-zinc-400 mt-0.5">Controla la aleatoriedad y variabilidad en la redacción.</p>
+                      <p className="text-xs text-zinc-400 mt-0.5">{t.workspace.creativityDesc || "Controla la aleatoriedad y variabilidad en la redacción."}</p>
                     </div>
                     <span className="text-base font-bold font-mono text-cyan-400 px-3 py-1 bg-cyan-950/50 border border-cyan-500/30 rounded-lg">
                       {temp}
@@ -451,9 +462,9 @@ export function ModelSelectionDrawer({
                       className="w-full accent-cyan-400 cursor-pointer h-2 bg-zinc-800 rounded-lg"
                     />
                     <div className="flex justify-between text-[11px] text-zinc-400 font-mono pt-1">
-                      <span>0.2 (Estructurado & Analítico)</span>
-                      <span>0.7 (Recomendado)</span>
-                      <span>1.0 (Creativo & Audaz)</span>
+                      <span>{t.workspace.tempStructured || "0.2 (Estructurado & Analítico)"}</span>
+                      <span>{t.workspace.tempRecommended || "0.7 (Recomendado)"}</span>
+                      <span>{t.workspace.tempCreative || "1.0 (Creativo & Audaz)"}</span>
                     </div>
                   </div>
                 </div>
@@ -462,7 +473,7 @@ export function ModelSelectionDrawer({
                 <div className="bg-zinc-900/40 p-5 rounded-xl border border-white/10 space-y-3">
                   <div>
                     <h4 className="text-sm font-semibold text-white">{t.workspace.customDirectives}</h4>
-                    <p className="text-xs text-zinc-400 mt-0.5">Instrucciones persistentes que se inyectan en el prompt para guiar a la IA.</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">{t.workspace.directivesDesc || "Instrucciones persistentes que se inyectan en el prompt para guiar a la IA."}</p>
                   </div>
 
                   <Textarea
@@ -547,7 +558,7 @@ export function ModelSelectionDrawer({
               onClick={handleSelectFreeAndApply}
               className="w-full border-white/10 hover:bg-white/5 text-zinc-300 text-xs py-2 rounded-xl cursor-pointer"
             >
-              {t.workspace.useFreeModelBtn || "⚡ Usar Modelo Gratuito (Nemotron 3.5 Lightning)"}
+              {t.workspace.useFreeModelBtn || "⚡ Usar Modelo Gratuito (Qwen3.8 27B)"}
             </Button>
 
             <button
