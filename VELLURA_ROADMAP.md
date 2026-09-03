@@ -100,7 +100,8 @@ This roadmap tracks the construction of the Vellura Micro-SaaS. Each phase lists
 - [ ] Set canonical domain (currently `vercel.app`; custom `vellura.ai` deferred).
 - [ ] Accessibility pass: focus trap in Onboarding/Drawer/Dialog, keyboard navigation for model cards, `prefers-reduced-motion` respect.
 - [x] Mobile F0+F1: viewport/safe-area/touch-target base, bottom tab bar, slim topbar with compact quota pill (commits `3ff70ed`, `9cb4752`).
-- [ ] Mobile QA resto: Generate (F2), Drawer + Onboarding (F3), Historial + Ajustes + Login (F4).
+- [x] Mobile F2: Generate workspace phone layout — sticky button, 2-row output header, tap tooltip, 16px fields (commit `30285d3`).
+- [ ] Mobile QA resto: Drawer + Onboarding (F3), Historial + Ajustes + Login (F4).
 - [ ] Clipboard API rejection handling.
 
 ### Phase 11: Testing
