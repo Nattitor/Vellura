@@ -87,6 +87,21 @@ export function GenerateWorkspace({
   const [customDirectives, setCustomDirectives] = useState<string>("");
 
   const outputRef = useRef<HTMLDivElement>(null);
+  // F2 mobile: floating CTA mirror — only visible while the real submit
+  // button is scrolled out of view (IntersectionObserver, no overlap).
+  const submitWrapRef = useRef<HTMLDivElement>(null);
+  const [showFloatingCta, setShowFloatingCta] = useState(false);
+
+  useEffect(() => {
+    const el = submitWrapRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowFloatingCta(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const toneLabels: Record<string, string> = {
     professional: t.workspace.toneProfessional,
@@ -496,8 +511,8 @@ export function GenerateWorkspace({
 
           </div>
 
-            {/* Submit Button (sticky above the tab bar on phones, static on desktop) */}
-          <div className="pt-3 pb-1 mt-2 shrink-0 border-t border-white/5 bg-zinc-950/90 backdrop-blur-md z-10 rounded-b-xl sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:static lg:bg-transparent lg:backdrop-blur-none lg:rounded-none lg:pt-4 lg:pb-0">
+            {/* Submit Button (static in-flow; a floating mirror takes over when scrolled out of view) */}
+          <div ref={submitWrapRef} className="pt-3 pb-1 mt-2 shrink-0 border-t border-white/5 lg:pt-4 lg:pb-0">
             <Button
               onClick={handleGenerate}
               disabled={isLoading || !jobDescription.trim()}
@@ -757,6 +772,30 @@ export function GenerateWorkspace({
           )}
         </ScrollArea>
       </div>
+
+      {/* Floating Generate CTA (phones only): mirrors the real submit button,
+          appears only while the real one is scrolled out of view */}
+      {showFloatingCta && (
+        <div className="lg:hidden fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <Button
+            onClick={handleGenerate}
+            disabled={isLoading || !jobDescription.trim()}
+            className="w-full h-12 bg-gradient-to-r from-amethyst-glow to-cyan-500 text-white font-semibold text-sm rounded-2xl shadow-[0_8px_30px_rgba(139,92,246,0.45)] active:scale-[0.98] disabled:opacity-60"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <span>{t.workspace.analyzing}</span>
+              </>
+            ) : (
+              <>
+                <Zap className="mr-2 h-4 w-4" />
+                <span>{t.workspace.btnGenerate}</span>
+              </>
+            )}
+          </Button>
+        </div>
+      )}
 
       {/* Slide-Over Drawer: Google AI Studio Style Model Selection */}
       <ModelSelectionDrawer
