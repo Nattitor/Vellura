@@ -86,8 +86,10 @@ export function ModelSelectionDrawer({
   const [temp, setTemp] = useState(initialTemp);
   const [directives, setDirectives] = useState(initialDirectives);
   const [showBYOKWarning, setShowBYOKWarning] = useState(false);
-  const [isCompact, setIsCompact] = useState(false);
   const pillsRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Sync state when opened
   const handleOpenState = (newOpen: boolean) => {
@@ -97,7 +99,7 @@ export function ModelSelectionDrawer({
       setTemp(initialTemp);
       setDirectives(initialDirectives);
       setActiveTab("models");
-      setIsCompact(false);
+      if (headerRef.current) headerRef.current.dataset.compact = "false";
     }
     onOpenChange(newOpen);
   };
@@ -130,6 +132,23 @@ export function ModelSelectionDrawer({
       el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", inline: "center", block: "nearest" });
     }
   }, [activeFilter]);
+
+  // Compact the header when the list scrolls (sentinel: fires once per crossing, no re-render)
+  useEffect(() => {
+    if (!open) return;
+    const header = headerRef.current;
+    const sentinel = sentinelRef.current;
+    if (!header || !sentinel) return;
+    header.dataset.compact = "false";
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        header.dataset.compact = entry.isIntersecting ? "false" : "true";
+      },
+      { root: scrollRef.current, rootMargin: "-24px 0px 0px 0px", threshold: 0 }
+    );
+    io.observe(sentinel);
+    return () => io.disconnect();
+  }, [open]);
 
   const handleSelectModel = (model: AIModelDefinition) => {
     setCurrentModel(model.id);
@@ -210,14 +229,14 @@ export function ModelSelectionDrawer({
         <SheetContent side="right" className="w-full sm:max-w-xl md:max-w-2xl bg-zinc-950/95 border-l border-white/15 p-0 flex flex-col h-full overflow-hidden shadow-2xl backdrop-blur-xl">
           
           {/* Header with Navigation Tabs (compacts on scroll: title/desc collapse, tabs+search stay) */}
-          <div className={`border-b border-white/10 shrink-0 motion-safe:transition-all motion-safe:duration-200 ${isCompact ? "p-3 sm:p-6 space-y-2" : "p-4 sm:p-6 space-y-4"}`}>
+          <div ref={headerRef} data-compact="false" className="group border-b border-white/10 shrink-0 p-4 sm:p-6 space-y-4 motion-safe:transition-all motion-safe:duration-200 group-data-[compact=true]:p-3 group-data-[compact=true]:space-y-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <SheetTitle className={`font-semibold text-white flex items-center gap-2.5 motion-safe:transition-all motion-safe:duration-200 ${isCompact ? "text-base" : "text-xl"}`}>
+                <SheetTitle className="font-semibold text-white flex items-center gap-2.5 text-xl motion-safe:transition-all motion-safe:duration-200 group-data-[compact=true]:text-base">
                   <Sliders className="w-5 h-5 text-cyan-400" />
                   <span>{t.workspace.expertModalTitle}</span>
                 </SheetTitle>
-                <div className={`grid motion-safe:transition-all motion-safe:duration-200 ${isCompact ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"}`}>
+                <div className="grid grid-rows-[1fr] opacity-100 motion-safe:transition-all motion-safe:duration-200 group-data-[compact=true]:grid-rows-[0fr] group-data-[compact=true]:opacity-0">
                   <div className="overflow-hidden">
                     <SheetDescription className="text-xs text-zinc-400">
                       {t.workspace.expertModalDesc}
@@ -314,13 +333,8 @@ export function ModelSelectionDrawer({
           </div>
 
           {/* Middle Content Area (Constrained flex-1 with native smooth overflow scroll) */}
-          <div
-            className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6"
-            onScroll={(e) => {
-              const v = e.currentTarget.scrollTop > 24;
-              setIsCompact((prev) => (prev === v ? prev : v));
-            }}
-          >
+          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
+            <div ref={sentinelRef} aria-hidden className="h-px w-full shrink-0" />
             {activeTab === "models" ? (
               /* TAB 1: MODEL CATALOG (Google AI Studio Cards) */
               <div className="space-y-3 pb-4">
