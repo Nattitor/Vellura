@@ -214,7 +214,7 @@ export function OnboardingWizard({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6 bg-black/85 backdrop-blur-xl animate-in fade-in duration-300">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-xl animate-in fade-in duration-300">
         {/* Glow backdrop behind modal */}
         <div className="absolute w-[500px] h-[500px] bg-amethyst-glow/15 rounded-full blur-[140px] pointer-events-none" />
 
@@ -223,7 +223,7 @@ export function OnboardingWizard({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="relative w-full sm:max-w-2xl max-h-[92dvh] bg-zinc-950/95 border border-white/10 rounded-t-3xl sm:rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden text-white z-10 pb-safe"
+          className="relative w-full sm:max-w-2xl max-h-[90dvh] bg-zinc-950/95 border border-white/10 rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden text-white z-10"
         >
           {/* Top glowing hairline */}
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amethyst-glow via-cyan-400 to-amethyst-glow z-20" />
@@ -263,8 +263,8 @@ export function OnboardingWizard({
             />
           </div>
 
-          {/* Modal Content Body (scrolls internally when content exceeds 92dvh) */}
-          <div className="p-4 sm:p-8 flex-1 min-h-0 overflow-y-auto flex flex-col justify-between relative">
+          {/* Modal Content Body (scrolls internally; footer is fixed below) */}
+          <div className="p-4 sm:p-8 flex-1 min-h-0 overflow-y-auto relative">
             <AnimatePresence mode="wait">
               {/* STEP 1: Welcome & Languages */}
               {step === 1 && (
@@ -597,9 +597,11 @@ export function OnboardingWizard({
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
 
-            {/* Modal Bottom Action Controls */}
-            <div className="flex items-center justify-between gap-3 pt-6 border-t border-white/5 mt-4">
+          {/* Modal Bottom Action Controls (fixed footer — always visible) */}
+          <div className="shrink-0 px-4 sm:px-8 py-3 border-t border-white/5 bg-zinc-950/95 pb-safe">
+            <div className="flex items-center justify-between gap-3">
               <div>
                 {step > 1 ? (
                   <Button
@@ -653,8 +655,9 @@ export function OnboardingWizard({
                 )}
               </div>
             </div>
+          </div>
 
-            {/* In-Card Full Cover Expanded Master Resume Editor (Zero Portal / Backdrop Conflict) */}
+          {/* Full Cover Expanded Master Resume Editor (panel level, over body + footer) */}
             <AnimatePresence>
               {isExpandedModalOpen && (
                 <motion.div
@@ -710,7 +713,6 @@ export function OnboardingWizard({
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
         </motion.div>
       </div>
     </AnimatePresence>
