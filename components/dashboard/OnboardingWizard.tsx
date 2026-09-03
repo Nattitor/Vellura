@@ -214,7 +214,7 @@ export function OnboardingWizard({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-xl animate-in fade-in duration-300">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6 bg-black/85 backdrop-blur-xl animate-in fade-in duration-300">
         {/* Glow backdrop behind modal */}
         <div className="absolute w-[500px] h-[500px] bg-amethyst-glow/15 rounded-full blur-[140px] pointer-events-none" />
 
@@ -223,13 +223,13 @@ export function OnboardingWizard({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="relative w-full max-w-2xl min-h-[500px] bg-zinc-950/95 border border-white/10 rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden text-white z-10"
+          className="relative w-full sm:max-w-2xl max-h-[92dvh] bg-zinc-950/95 border border-white/10 rounded-t-3xl sm:rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden text-white z-10 pb-safe"
         >
           {/* Top glowing hairline */}
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amethyst-glow via-cyan-400 to-amethyst-glow z-20" />
 
           {/* Modal Header */}
-          <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-white/5 shrink-0">
+          <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-4 flex items-center justify-between border-b border-white/5 shrink-0">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-amethyst-glow/15 border border-amethyst-glow/30 text-violet-300 flex items-center gap-1.5">
                 <Sparkles className="w-3 h-3 text-cyan-400" />
@@ -246,7 +246,7 @@ export function OnboardingWizard({
                   localStorage.setItem(`vellura_onboarding_${userEmail}`, "true");
                   setIsOpen(false);
                 }}
-                className="text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                className="touch-target text-zinc-500 hover:text-white transition-colors cursor-pointer p-1"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -263,8 +263,8 @@ export function OnboardingWizard({
             />
           </div>
 
-          {/* Modal Content Body */}
-          <div className="p-6 sm:p-8 flex-1 flex flex-col justify-between relative">
+          {/* Modal Content Body (scrolls internally when content exceeds 92dvh) */}
+          <div className="p-4 sm:p-8 flex-1 min-h-0 overflow-y-auto flex flex-col justify-between relative">
             <AnimatePresence mode="wait">
               {/* STEP 1: Welcome & Languages */}
               {step === 1 && (
@@ -276,7 +276,7 @@ export function OnboardingWizard({
                   className="space-y-6"
                 >
                   <div className="space-y-2">
-                    <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
                       👋 {dict.onboarding?.step1Title || "Bienvenida e Idiomas"}
                     </h2>
                     <p className="text-sm text-zinc-400">
@@ -294,7 +294,7 @@ export function OnboardingWizard({
                         </span>
                       </div>
                       <Select value={uiLang} onValueChange={handleUiLanguageChange}>
-                        <SelectTrigger className="w-full h-11 bg-zinc-950 border-white/10 text-white font-medium">
+                        <SelectTrigger className="w-full h-12 bg-zinc-950 border-white/10 text-white font-medium text-base sm:text-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-900 border-white/10 text-white z-[60]">
@@ -315,7 +315,7 @@ export function OnboardingWizard({
                         </span>
                       </div>
                       <Select value={outLang} onValueChange={handleOutputLanguageChange}>
-                        <SelectTrigger className="w-full h-11 bg-zinc-950 border-white/10 text-white font-medium">
+                        <SelectTrigger className="w-full h-12 bg-zinc-950 border-white/10 text-white font-medium text-base sm:text-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-zinc-900 border-white/10 text-white z-[60]">
@@ -340,7 +340,7 @@ export function OnboardingWizard({
                   className="space-y-6"
                 >
                   <div className="space-y-2">
-                    <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
                       📸 {dict.onboarding?.step2Title || "Foto de Perfil"}
                     </h2>
                     <p className="text-sm text-zinc-400">
@@ -380,7 +380,7 @@ export function OnboardingWizard({
                         <Button
                           type="button"
                           onClick={() => avatarInputRef.current?.click()}
-                          className="bg-zinc-800 hover:bg-zinc-700 text-white text-xs border border-white/10 cursor-pointer"
+                          className="bg-zinc-800 hover:bg-zinc-700 text-white text-xs border border-white/10 cursor-pointer h-11 px-4 inline-flex items-center"
                         >
                           <Camera className="w-3.5 h-3.5 mr-1.5 text-amethyst-glow" />
                           {dict.onboarding?.step2UploadNew || "Subir Nueva Foto"}
@@ -424,7 +424,7 @@ export function OnboardingWizard({
 
                   {/* Auto-Translate Checkbox */}
                   <div className="flex items-center justify-between pt-1">
-                    <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-300 hover:text-white select-none transition-colors bg-zinc-900/80 border border-white/10 px-3 py-1.5 rounded-lg">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-300 hover:text-white select-none transition-colors bg-zinc-900/80 border border-white/10 px-3 h-11 rounded-lg">
                       <input
                         type="checkbox"
                         checked={autoTranslate}
@@ -510,7 +510,7 @@ export function OnboardingWizard({
                     value={resumeText}
                     onChange={(e) => setResumeText(e.target.value)}
                     placeholder={dict.onboarding?.step3OrPaste || "O escribe / pega tu experiencia manualmente..."}
-                    className="h-[110px] bg-zinc-950/70 border-white/10 text-white font-mono text-xs leading-relaxed resize-none ethereal-scrollbar"
+                    className="h-[110px] bg-zinc-950/70 border-white/10 text-white font-mono text-base sm:text-xs leading-relaxed resize-none ethereal-scrollbar"
                   />
 
                   {/* Word / Char Counter */}
@@ -590,7 +590,7 @@ export function OnboardingWizard({
                         value={byokKey}
                         onChange={(e) => setByokKey(e.target.value)}
                         placeholder={dict.onboarding?.step4KeyPlaceholder || "Pega tu clave de API..."}
-                        className="sm:col-span-2 h-9 bg-zinc-950 border-white/10 text-xs text-white"
+                        className="sm:col-span-2 h-12 sm:h-9 bg-zinc-950 border-white/10 text-base sm:text-xs text-white"
                       />
                     </div>
                   </div>
@@ -599,14 +599,14 @@ export function OnboardingWizard({
             </AnimatePresence>
 
             {/* Modal Bottom Action Controls */}
-            <div className="flex items-center justify-between pt-6 border-t border-white/5 mt-4">
+            <div className="flex items-center justify-between gap-3 pt-6 border-t border-white/5 mt-4">
               <div>
                 {step > 1 ? (
                   <Button
                     type="button"
                     variant="ghost"
                     onClick={() => setStep((s) => (s - 1) as any)}
-                    className="text-xs text-zinc-400 hover:text-white cursor-pointer"
+                    className="h-11 px-3 text-xs text-zinc-400 hover:text-white cursor-pointer"
                   >
                     <ArrowLeft className="w-3.5 h-3.5 mr-1" />
                     {dict.onboarding?.btnBack || "Atrás"}
@@ -619,7 +619,7 @@ export function OnboardingWizard({
                       localStorage.setItem(`vellura_onboarding_${userEmail}`, "true");
                       setIsOpen(false);
                     }}
-                    className="text-xs text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                    className="h-11 px-3 text-xs text-zinc-500 hover:text-zinc-300 cursor-pointer"
                   >
                     {dict.onboarding?.btnSkip || "Omitir por ahora"}
                   </Button>
@@ -631,7 +631,7 @@ export function OnboardingWizard({
                   <Button
                     type="button"
                     onClick={() => setStep((s) => (s + 1) as any)}
-                    className="bg-amethyst-glow hover:bg-amethyst-glow/90 text-white text-xs px-5 shadow-[0_0_15px_rgba(139,92,246,0.3)] cursor-pointer"
+                    className="bg-amethyst-glow hover:bg-amethyst-glow/90 text-white text-xs px-5 h-11 shadow-[0_0_15px_rgba(139,92,246,0.3)] cursor-pointer"
                   >
                     <span>{dict.onboarding?.btnNext || "Continuar"}</span>
                     <ArrowRight className="w-3.5 h-3.5 ml-1" />
@@ -641,7 +641,7 @@ export function OnboardingWizard({
                     type="button"
                     onClick={handleComplete}
                     disabled={isPending}
-                    className="bg-gradient-to-r from-amethyst-glow to-cyan-500 hover:opacity-90 text-white text-xs px-6 font-semibold shadow-[0_0_20px_rgba(139,92,246,0.4)] cursor-pointer"
+                    className="bg-gradient-to-r from-amethyst-glow to-cyan-500 hover:opacity-90 text-white text-xs px-4 sm:px-6 h-11 font-semibold shadow-[0_0_20px_rgba(139,92,246,0.4)] cursor-pointer"
                   >
                     {isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
@@ -690,19 +690,19 @@ export function OnboardingWizard({
                       value={resumeText}
                       onChange={(e) => setResumeText(e.target.value)}
                       placeholder={dict.onboarding?.step3OrPaste || "Pega o edita tu experiencia aquí..."}
-                      className="w-full flex-1 min-h-[280px] sm:min-h-[320px] bg-zinc-900/80 border-white/15 text-white placeholder:text-zinc-500 focus-visible:ring-1 focus-visible:ring-cyan-500 rounded-xl text-xs sm:text-sm p-4 leading-relaxed font-mono resize-none ethereal-scrollbar"
+                      className="w-full flex-1 min-h-[280px] sm:min-h-[320px] bg-zinc-900/80 border-white/15 text-white placeholder:text-zinc-500 focus-visible:ring-1 focus-visible:ring-cyan-500 rounded-xl text-base sm:text-sm p-4 leading-relaxed font-mono resize-none ethereal-scrollbar"
                     />
                   </div>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between pt-3 border-t border-white/10 shrink-0">
-                    <span className="text-[11px] text-zinc-400">
+                  <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/10 shrink-0">
+                    <span className="text-[11px] text-zinc-400 hidden min-[420px]:block">
                       {dict.settings?.saveContext || "Los cambios se aplicarán automáticamente a tu Master Resume."}
                     </span>
                     <Button
                       type="button"
                       onClick={() => setIsExpandedModalOpen(false)}
-                      className="bg-gradient-to-r from-amethyst-glow to-cyan-500 hover:opacity-90 text-white text-xs font-semibold px-5 py-2 rounded-xl cursor-pointer shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+                      className="bg-gradient-to-r from-amethyst-glow to-cyan-500 hover:opacity-90 text-white text-xs font-semibold px-5 h-11 w-full min-[420px]:w-auto rounded-xl cursor-pointer shadow-[0_0_15px_rgba(139,92,246,0.3)]"
                     >
                       {dict.workspace?.done || "Listo"}
                     </Button>

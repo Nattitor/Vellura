@@ -198,7 +198,7 @@ export function ModelSelectionDrawer({
         <SheetContent side="right" className="w-full sm:max-w-xl md:max-w-2xl bg-zinc-950/95 border-l border-white/15 p-0 flex flex-col h-full overflow-hidden shadow-2xl backdrop-blur-xl">
           
           {/* Header with Navigation Tabs */}
-          <div className="p-6 border-b border-white/10 shrink-0 space-y-4">
+          <div className="p-4 sm:p-6 border-b border-white/10 shrink-0 space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <SheetTitle className="text-xl font-semibold text-white flex items-center gap-2.5">
@@ -211,12 +211,12 @@ export function ModelSelectionDrawer({
               </div>
             </div>
 
-            {/* Navigation Tabs (Models vs Parameters) */}
-            <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+            {/* Navigation Tabs (Models vs Parameters) — full-width 2-col on phones */}
+            <div className="grid grid-cols-2 items-center gap-2 border-b border-white/10 pb-2">
               <button
                 type="button"
                 onClick={() => setActiveTab("models")}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`touch-target flex items-center justify-center gap-2 px-2 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === "models"
                     ? "bg-white text-zinc-950 shadow-[0_0_12px_rgba(255,255,255,0.2)]"
                     : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -229,7 +229,7 @@ export function ModelSelectionDrawer({
               <button
                 type="button"
                 onClick={() => setActiveTab("parameters")}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                className={`touch-target flex items-center justify-center gap-2 px-2 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === "parameters"
                     ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
                     : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -254,7 +254,7 @@ export function ModelSelectionDrawer({
                     placeholder={t.workspace.searchModelsPlaceholder || "Buscar modelo o capacidades..."}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-zinc-900/90 border-white/10 text-white pl-10 h-10 text-xs rounded-xl focus-visible:ring-cyan-500 placeholder:text-zinc-500"
+                    className="bg-zinc-900/90 border-white/10 text-white pl-10 h-12 text-base sm:text-xs rounded-xl focus-visible:ring-cyan-500 placeholder:text-zinc-500"
                   />
                 </div>
 
@@ -263,7 +263,7 @@ export function ModelSelectionDrawer({
                   <button
                     type="button"
                     onClick={() => setActiveFilter("all")}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                    className={`inline-flex items-center min-h-[40px] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                       activeFilter === "all"
                         ? "bg-white text-zinc-950 shadow-[0_0_12px_rgba(255,255,255,0.2)]"
                         : "bg-zinc-900/80 text-zinc-400 hover:text-white border border-white/5"
@@ -279,7 +279,7 @@ export function ModelSelectionDrawer({
                         key={p.id}
                         type="button"
                         onClick={() => setActiveFilter(p.id)}
-                        className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
+                        className={`inline-flex items-center min-h-[40px] px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all gap-1.5 cursor-pointer ${
                           activeFilter === p.id
                             ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
                             : "bg-zinc-900/80 text-zinc-400 hover:text-white border border-white/5"
@@ -296,7 +296,7 @@ export function ModelSelectionDrawer({
           </div>
 
           {/* Middle Content Area (Constrained flex-1 with native smooth overflow scroll) */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-6">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
             {activeTab === "models" ? (
               /* TAB 1: MODEL CATALOG (Google AI Studio Cards) */
               <div className="space-y-3 pb-4">
@@ -372,8 +372,8 @@ export function ModelSelectionDrawer({
                               {getModelDescription(m.id, language)}
                             </p>
 
-                            <div className="flex items-center gap-3 pt-1 text-[11px] text-zinc-500 font-mono">
-                              <span>ID: {m.id}</span>
+                            <div className="flex items-center gap-3 pt-1 text-[11px] text-zinc-500 font-mono min-w-0">
+                              <span className="truncate">ID: {m.id}</span>
                               <span>•</span>
                               <span>{AI_PROVIDERS[m.provider]?.name || m.provider}</span>
                             </div>
@@ -459,9 +459,9 @@ export function ModelSelectionDrawer({
                       step="0.1"
                       value={temp}
                       onChange={(e) => setTemp(parseFloat(e.target.value))}
-                      className="w-full accent-cyan-400 cursor-pointer h-2 bg-zinc-800 rounded-lg"
+                      className="w-full accent-cyan-400 cursor-pointer touch-target"
                     />
-                    <div className="flex justify-between text-[11px] text-zinc-400 font-mono pt-1">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between text-[11px] text-zinc-400 font-mono pt-1">
                       <span>{t.workspace.tempStructured || "0.2 (Estructurado & Analítico)"}</span>
                       <span>{t.workspace.tempRecommended || "0.7 (Recomendado)"}</span>
                       <span>{t.workspace.tempCreative || "1.0 (Creativo & Audaz)"}</span>
@@ -480,21 +480,21 @@ export function ModelSelectionDrawer({
                     value={directives}
                     onChange={(e) => setDirectives(e.target.value)}
                     placeholder={t.workspace.customDirectivesPlaceholder}
-                    className="bg-zinc-950/80 border-white/10 text-white font-mono text-xs leading-relaxed min-h-[120px] resize-none focus-visible:ring-cyan-500 rounded-lg"
+                    className="bg-zinc-950/80 border-white/10 text-white font-mono text-base sm:text-xs leading-relaxed min-h-[120px] resize-none focus-visible:ring-cyan-500 rounded-lg"
                   />
                 </div>
               </div>
             )}
           </div>
 
-          {/* Footer Actions */}
-          <div className="p-4 bg-zinc-950 border-t border-white/10 shrink-0 space-y-2.5">
-            <div className="flex items-center justify-between gap-3">
+          {/* Footer Actions (stacked full-width on phones) */}
+          <div className="p-4 bg-zinc-950 border-t border-white/10 shrink-0 space-y-2.5 pb-safe">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={handleResetToStandard}
-                className="text-xs text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer"
+                className="h-11 w-full sm:w-auto justify-center text-xs text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer"
               >
                 {t.workspace.standardModePrompt}
               </Button>
@@ -502,7 +502,7 @@ export function ModelSelectionDrawer({
               <Button
                 type="button"
                 onClick={handleApplyClick}
-                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-6 py-2.5 rounded-xl font-semibold cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all active:scale-95"
+                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-6 h-12 w-full sm:w-auto justify-center rounded-xl font-semibold cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all active:scale-95"
               >
                 {t.workspace.applyAndClose}
               </Button>
@@ -517,7 +517,7 @@ export function ModelSelectionDrawer({
 
       {/* Premium BYOK Missing API Key Warning Modal */}
       <Dialog open={showBYOKWarning} onOpenChange={setShowBYOKWarning}>
-        <DialogContent className="bg-zinc-950 border border-amber-500/40 text-white sm:max-w-md p-6 rounded-2xl shadow-2xl">
+        <DialogContent className="bg-zinc-950 border border-amber-500/40 text-white w-[calc(100vw-2rem)] sm:w-full sm:max-w-md max-h-[85dvh] overflow-y-auto p-4 sm:p-6 rounded-2xl shadow-2xl">
           <DialogHeader className="space-y-3">
             <div className="mx-auto w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.2)]">
               <KeyRound className="w-7 h-7 text-amber-400" />
@@ -546,7 +546,7 @@ export function ModelSelectionDrawer({
             <Button
               type="button"
               onClick={handleGoToSettings}
-              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.3)] active:scale-98 transition-all"
+              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold text-xs h-12 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.3)] active:scale-98 transition-all"
             >
               <span>{t.workspace.goToSettingsBtn || "Ir a Ajustes para Añadir Clave"}</span>
               <ArrowRight className="w-4 h-4" />
@@ -556,7 +556,7 @@ export function ModelSelectionDrawer({
               type="button"
               variant="outline"
               onClick={handleSelectFreeAndApply}
-              className="w-full border-white/10 hover:bg-white/5 text-zinc-300 text-xs py-2 rounded-xl cursor-pointer"
+              className="w-full border-white/10 hover:bg-white/5 text-zinc-300 text-xs h-11 rounded-xl cursor-pointer"
             >
               {t.workspace.useFreeModelBtn || "⚡ Usar Modelo Gratuito (Qwen3.8 27B)"}
             </Button>
