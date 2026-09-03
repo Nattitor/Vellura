@@ -38,11 +38,18 @@ export async function updateSession(request: NextRequest) {
 
   const isProtectedRoute = request.nextUrl.pathname.startsWith("/dashboard");
 
-  // Handle expired/invalid JWT
+  // Handle expired/invalid JWT. NOTE: getUser() also returns an error when
+  // there is simply no session (never logged in), so only flag `expired`
+  // when session cookies exist — otherwise it's a plain first visit.
   if (error && isProtectedRoute) {
+    const hadSession = request.cookies
+      .getAll()
+      .some((c) => c.name.startsWith("sb-") && c.name.includes("auth-token"));
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("expired", "true");
+    if (hadSession) {
+      url.searchParams.set("expired", "true");
+    }
     return NextResponse.redirect(url);
   }
 
