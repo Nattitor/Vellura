@@ -75,7 +75,7 @@ export function AdvancedBYOKForm({ initialConfiguredProviders = [] }: { initialC
   const providerList: AIProviderId[] = ["google", "groq", "openai", "anthropic", "deepseek", "openrouter"];
 
   return (
-    <div className="w-full ethereal-panel p-6 md:p-8 rounded-xl flex flex-col space-y-6 relative overflow-hidden">
+    <div className="w-full ethereal-panel p-4 sm:p-6 md:p-8 rounded-xl flex flex-col space-y-6 relative overflow-hidden">
       {/* Header */}
       <div className="flex flex-col space-y-2 relative z-10">
         <div className="flex items-center gap-2">
@@ -138,7 +138,7 @@ export function AdvancedBYOKForm({ initialConfiguredProviders = [] }: { initialC
 
       {/* Active Provider Config Box */}
       {activeProvider && (
-        <div className="bg-zinc-900/60 border border-white/10 rounded-xl p-5 space-y-4 relative z-10 animate-in fade-in duration-200">
+        <div className="bg-zinc-900/60 border border-white/10 rounded-xl p-4 sm:p-5 space-y-4 relative z-10 animate-in fade-in duration-200">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2">
@@ -172,7 +172,7 @@ export function AdvancedBYOKForm({ initialConfiguredProviders = [] }: { initialC
           </div>
 
           {keys[activeProvider] ? (
-            <div className="flex items-center justify-between p-3.5 bg-zinc-950/80 border border-white/10 rounded-lg">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3.5 bg-zinc-950/80 border border-white/10 rounded-lg">
               <div className="flex items-center gap-2.5">
                 <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
                 <div>
@@ -188,7 +188,7 @@ export function AdvancedBYOKForm({ initialConfiguredProviders = [] }: { initialC
                 size="sm"
                 onClick={() => handleRemove(activeProvider)}
                 disabled={isPending}
-                className="h-11 sm:h-8 px-4 text-xs bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/40 cursor-pointer"
+                className="h-11 sm:h-8 px-4 text-xs bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/40 cursor-pointer w-full sm:w-auto justify-center"
               >
                 <Trash2 className="w-3 h-3 mr-1" />
                 {t.settings.disconnectBtn || "Disconnect"}
