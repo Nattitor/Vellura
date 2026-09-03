@@ -187,7 +187,7 @@ export function AuthForm() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full mb-5 border-white/10 bg-zinc-900/50 hover:bg-zinc-800 text-white text-xs h-10 relative active:scale-[0.98] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2.5"
+                className="w-full mb-5 border-white/10 bg-zinc-900/50 hover:bg-zinc-800 text-white text-xs h-12 sm:h-10 relative active:scale-[0.98] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2.5"
                 onClick={handleGoogleSignIn}
                 disabled={isPending}
               >
@@ -252,7 +252,7 @@ export function AuthForm() {
                     type="email"
                     placeholder={t.auth.emailPlaceholder || "name@example.com"}
                     required
-                    className="bg-zinc-900/50 border-white/10 text-white text-xs h-9 focus-visible:ring-amethyst-glow select-text"
+                    className="bg-zinc-900/50 border-white/10 text-white text-base sm:text-xs h-12 sm:h-9 focus-visible:ring-amethyst-glow select-text"
                     disabled={isPending}
                   />
                 </div>
@@ -268,7 +268,7 @@ export function AuthForm() {
                         <button
                           type="button"
                           onClick={() => handleModeChange("forgot")}
-                          className="text-[11px] text-zinc-400 hover:text-cyan-400 transition-colors cursor-pointer"
+                          className="text-[11px] text-zinc-400 hover:text-cyan-400 transition-colors cursor-pointer px-1 py-2"
                         >
                           {t.auth.forgotPasswordLink || "¿Olvidaste tu contraseña?"}
                         </button>
@@ -281,13 +281,13 @@ export function AuthForm() {
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         required
-                        className="bg-zinc-900/50 border-white/10 text-white text-xs h-9 pr-9 focus-visible:ring-amethyst-glow select-text"
+                        className="bg-zinc-900/50 border-white/10 text-white text-base sm:text-xs h-12 sm:h-9 pr-11 focus-visible:ring-amethyst-glow select-text"
                         disabled={isPending}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer p-0.5"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer touch-target flex items-center justify-center"
                         tabIndex={-1}
                         title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
                       >
@@ -312,7 +312,7 @@ export function AuthForm() {
                 {/* Submit Button */}
                 <Button
                   type="submit"
-                  className="w-full bg-amethyst-glow hover:bg-amethyst-glow/90 text-white text-xs font-semibold h-10 mt-2 active:scale-[0.98] transition-all cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.25)] flex items-center justify-center gap-2"
+                  className="w-full bg-amethyst-glow hover:bg-amethyst-glow/90 text-white text-xs font-semibold h-12 sm:h-10 mt-2 active:scale-[0.98] transition-all cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.25)] flex items-center justify-center gap-2"
                   disabled={isPending}
                 >
                   {isPending ? (
@@ -342,7 +342,7 @@ export function AuthForm() {
               <button
                 type="button"
                 onClick={() => handleModeChange("login")}
-                className="text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5 mx-auto p-1.5"
+                className="text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5 mx-auto p-1.5 min-h-[44px]"
                 disabled={isPending}
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
@@ -352,7 +352,7 @@ export function AuthForm() {
               <button
                 type="button"
                 onClick={() => handleModeChange(mode === "login" ? "signup" : "login")}
-                className="text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer p-1.5"
+                className="text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer p-1.5 min-h-[44px] inline-flex items-center justify-center"
                 disabled={isPending}
               >
                 {mode === "login" 
