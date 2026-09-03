@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     // 3. Fetch User's Master Resume, Limits, and BYOK
     const { data: profile } = await supabase
       .from("profiles")
-      .select("resume_text, daily_limit, last_generation_date, byok_key, output_language")
+      .select("resume_text, daily_limit, last_generation_date, byok_key, output_language, ui_language")
       .eq("id", user.id)
       .single();
 
@@ -74,7 +74,8 @@ export async function POST(req: Request) {
     // Pre-flight: validate at least one functional key exists before attempting cascade
     const hasGoogleKey = !!process.env.GOOGLE_GENERATIVE_AI_API_KEY || !!userKeys.google;
     const hasOpenRouterKey = !!process.env.OPENROUTER_API_KEY || !!userKeys.openrouter;
-    if (!isUsingOwnKey && !hasGoogleKey && !hasOpenRouterKey) {
+    const hasGroqKey = !!process.env.GROQ_API_KEY || !!userKeys.groq;
+    if (!isUsingOwnKey && !hasGoogleKey && !hasOpenRouterKey && !hasGroqKey) {
       return new NextResponse(
         "No API keys configured. Add a provider key in Settings > Advanced, or contact support.",
         { status: 400 }
@@ -82,10 +83,12 @@ export async function POST(req: Request) {
     }
 
     // 4. Construct Prompts
-    const systemPrompt = `You are an elite, highly persuasive executive cover letter writer. 
+    // Language priority: explicit output_language > ui_language > English fallback.
+    const targetLanguage = profile?.output_language || profile?.ui_language || "English";
+    const systemPrompt = `You are an elite, highly persuasive executive cover letter writer.
 Your task is to write a highly tailored cover letter based on the user's master resume and the provided job description.
 Tone: ${tone || "Professional & Polished"}
-Target Language: ${profile?.output_language || "English"} (You MUST output the letter entirely in this language).
+Target Language: ${targetLanguage} (You MUST output the letter entirely in this language).
 ${customDirectives ? `Special Instructions: ${customDirectives}` : ""}
 Keep the letter concise (3-4 paragraphs max), highly impactful, and avoiding cliché buzzwords. Focus on aligning the user's past impact with the job's requirements. Do not invent facts that are not in the resume. Output standard markdown.
 
@@ -140,49 +143,71 @@ ${jobDescription}`;
           }
         );
         
-        // Deduct limit only if valid completion and using free tier
-        if (!isUsingOwnKey) {
-          const { error: profileError } = await staticSupabase
-            .from("profiles")
-            .update({ 
-              daily_limit: Math.max(0, currentLimit - 1),
-              last_generation_date: today
-            })
-            .eq("id", user.id);
-            
-          if (profileError) console.error("Error updating limits:", profileError);
-        }
-
         const companyAndRole = extractCompanyAndRole(jobDescription, text);
         const cleanText = text.replace(/<!--[\s\S]*?-->/g, "").trim();
+        const finalModelUsed = wasFallback ? `${usedModelName} (Fallback)` : usedModelName;
 
-        const { error: docError } = await staticSupabase
-          .from("documents")
-          .insert({
-            user_id: user.id,
-            company_name: companyAndRole,
-            job_description: jobDescription,
-            generated_content: cleanText,
-            ai_model_used: wasFallback ? `${usedModelName} (Fallback)` : usedModelName
-          });
-          
-        if (docError) console.error("Error inserting document:", docError);
+        // Try atomic RPC function first (single-transaction quota decrement + document insert)
+        const { data: rpcResult, error: rpcError } = await staticSupabase.rpc(
+          "consume_limit_and_save_document",
+          {
+            p_company_name: companyAndRole,
+            p_job_description: jobDescription,
+            p_generated_content: cleanText,
+            p_ai_model_used: finalModelUsed,
+            p_is_using_own_key: isUsingOwnKey,
+          }
+        );
+
+        if (rpcError) {
+          console.warn("Notice: RPC consume_limit_and_save_document not available, using fallback operations:", rpcError.message);
+          // Defensive fallback if RPC not yet created in Supabase SQL editor
+          if (!isUsingOwnKey) {
+            const { error: profileError } = await staticSupabase
+              .from("profiles")
+              .update({
+                daily_limit: Math.max(0, currentLimit - 1),
+                last_generation_date: today,
+                updated_at: new Date().toISOString()
+              })
+              .eq("id", user.id);
+              
+            if (profileError) console.error("Error updating limits (fallback):", profileError);
+          }
+
+          const { error: docError } = await staticSupabase
+            .from("documents")
+            .insert({
+              user_id: user.id,
+              company_name: companyAndRole,
+              job_description: jobDescription,
+              generated_content: cleanText,
+              ai_model_used: finalModelUsed
+            });
+            
+          if (docError) console.error("Error inserting document (fallback):", docError);
+        } else {
+          console.log("Atomic document persistence & limit consumption succeeded:", rpcResult);
+        }
       } catch (err) {
         console.error("Unhandled error in onFinish:", err);
       }
     };
 
     // 6. Build Candidate Model List
-    // Try OpenRouter first (less saturated, multi-provider), then fallback to Google direct
+    // Three independent free quotas: Groq direct (LPU, no credit card,
+    // most reliable) → Google direct → OpenRouter :free → Google last
+    // resort. Each provider is short-circuited independently on its first
+    // 429/403 (see catch block).
     const openrouterKey = userKeys.openrouter || process.env.OPENROUTER_API_KEY;
     console.log(`[OpenRouter] system env key present: ${!!process.env.OPENROUTER_API_KEY}, user BYOK present: ${!!userKeys.openrouter}`);
     let openrouterClient = null;
     if (openrouterKey) {
       openrouterClient = createOpenAI({
         baseURL: "https://openrouter.ai/api/v1",
-        apiKey: openrouterKey,
+        apiKey: userKeys.openrouter || process.env.OPENROUTER_API_KEY,
         headers: {
-          "HTTP-Referer": "https://vellura.ai",
+          "HTTP-Referer": "https://vellura.vercel.app",
           "X-Title": "Vellura AI Workspace",
         },
       });
@@ -191,16 +216,33 @@ ${jobDescription}`;
       console.warn(`[OpenRouter] NO KEY available - cascade will only use Google direct models`);
     }
 
+    // Groq direct: independent free quota (no credit card), OpenAI-compatible.
+    const groqKey = userKeys.groq || process.env.GROQ_API_KEY;
+    console.log(`[Groq] system env key present: ${!!process.env.GROQ_API_KEY}, user BYOK present: ${!!userKeys.groq}`);
+    let groqClient = null;
+    if (groqKey) {
+      groqClient = createOpenAI({
+        baseURL: "https://api.groq.com/openai/v1",
+        apiKey: userKeys.groq || process.env.GROQ_API_KEY,
+      });
+      console.log(`[Groq] client initialized, key prefix: ${groqKey.substring(0, 7)}...`);
+    } else {
+      console.warn(`[Groq] NO KEY available - cascade will skip Groq candidates`);
+    }
+
     const googleClient = createGoogleGenerativeAI({
-      apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || userKeys.google,
+      apiKey: userKeys.google || process.env.GOOGLE_GENERATIVE_AI_API_KEY,
     });
 
     let candidateConfigs: Array<{ model: any; modelName: string; provider: AIProviderId; isFallback: boolean }> = [];
 
     if (modelPreference === "speed") {
-      // Speed Mode: Google first → OpenRouter models (if key, but skip on first 429) → Gemini 3.6 Flash (last resort)
-      // All OpenRouter free models share a single 50/day per-account quota, so we probe only one OR model first.
+      // Speed Mode: Groq Qwen3.8 27B → Google 3.7 → OpenRouter free-tier
+      // models (shared 50/day per-account quota) → Gemini 3.6 Flash last resort.
       candidateConfigs = [
+        ...(groqClient
+          ? [{ model: groqClient("qwen/qwen3.8-27b"), modelName: "qwen/qwen3.8-27b", provider: "groq" as AIProviderId, isFallback: false }]
+          : []),
         { model: googleClient("gemini-3.7-flash"), modelName: "gemini-3.7-flash", provider: "google", isFallback: false },
         ...(openrouterClient
           ? [{ model: openrouterClient("nvidia/nemotron-3.5-lightning:free"), modelName: "nemotron-3.5-lightning", provider: "openrouter" as AIProviderId, isFallback: true }]
@@ -214,9 +256,12 @@ ${jobDescription}`;
         { model: googleClient("gemini-3.6-flash"), modelName: "gemini-3.6-flash", provider: "google", isFallback: true },
       ];
     } else if (modelPreference === "reasoning") {
-      // Reasoning Mode: Gemma 4 (Google) → Nemotron 3 Ultra (OpenRouter) → Gemma 4 26B (OR) → Gemma 4 31B (OR free) → Gemini 3.6 Flash
-      // All OpenRouter free models share a single 50/day per-account quota.
+      // Reasoning Mode: Groq GPT-OSS 120B → Gemma 4 (Google) → OpenRouter free
+      // reasoning models → Gemini 3.6 Flash (last resort).
       candidateConfigs = [
+        ...(groqClient
+          ? [{ model: groqClient("openai/gpt-oss-120b"), modelName: "openai/gpt-oss-120b", provider: "groq" as AIProviderId, isFallback: false }]
+          : []),
         { model: googleClient("gemma-4-31b-it"), modelName: "gemma-4-31b-it", provider: "google", isFallback: false },
         ...(openrouterClient
           ? [{ model: openrouterClient("nvidia/nemotron-3-ultra-550b-a55b:free"), modelName: "nemotron-3-ultra", provider: "openrouter" as AIProviderId, isFallback: true }]
@@ -256,6 +301,7 @@ ${jobDescription}`;
     let activeModelName = candidateConfigs[0]?.modelName || "AI Model";
     let wasFallbackUsed = false;
     let openrouterQuotaExhausted = false;
+    let groqQuotaExhausted = false;
 
     for (let i = 0; i < candidateConfigs.length; i++) {
       const candidate = candidateConfigs[i];
@@ -323,22 +369,23 @@ ${jobDescription}`;
         clearTimeout(connectTimeout);
         const status = candidateErr?.statusCode;
         // Attribute the failure to the provider that actually returned it, not to
-        // "an OpenRouter key happens to exist somewhere in this request". Google and
+        // "a key happens to exist somewhere in this request". Google and
         // OpenRouter can share a modelName (e.g. "gemma-4-31b-it"), so name-based
         // detection is unreliable; the explicit `candidate.provider` tag is not.
-        const isOpenRouterCandidate = candidate.provider === "openrouter";
+        // Each free provider has its OWN independent quota, so a 429/403 on one
+        // skips only that provider's remaining candidates.
         const isRateLimitedOrRestricted = status === 429 || status === 403;
-        const shouldSkipRemainingOR = isOpenRouterCandidate && isRateLimitedOrRestricted;
+        const shouldSkipProvider =
+          isRateLimitedOrRestricted &&
+          (candidate.provider === "openrouter" || candidate.provider === "groq");
         console.warn(
-          `Model ${candidate.modelName} (${candidate.provider}) unavailable (status ${status || "?"}: ${candidateErr?.message || "high demand"}). ${shouldSkipRemainingOR ? "OpenRouter quota exhausted, skipping remaining OR candidates." : "Cascading to next candidate..."}`
+          `Model ${candidate.modelName} (${candidate.provider}) unavailable (status ${status || "?"}: ${candidateErr?.message || "high demand"}). ${shouldSkipProvider ? `${candidate.provider} quota exhausted, skipping remaining ${candidate.provider} candidates.` : "Cascading to next candidate..."}`
         );
-        // If an OpenRouter candidate returned 429 (rate limit) or 403 (model restricted),
-        // all remaining OpenRouter models will likely fail the same way (shared quota).
-        // Skip straight to the next non-OpenRouter candidate to avoid wasting time.
-        if (shouldSkipRemainingOR) {
-          openrouterQuotaExhausted = true;
+        if (shouldSkipProvider) {
+          if (candidate.provider === "openrouter") openrouterQuotaExhausted = true;
+          if (candidate.provider === "groq") groqQuotaExhausted = true;
           for (let j = i + 1; j < candidateConfigs.length; j++) {
-            if (candidateConfigs[j].provider !== "openrouter") {
+            if (candidateConfigs[j].provider !== candidate.provider) {
               i = j - 1; // -1 because the loop's i++ will increment
               break;
             }
@@ -348,9 +395,15 @@ ${jobDescription}`;
     }
 
     if (!activeStream) {
-      if (openrouterQuotaExhausted) {
+      if (openrouterQuotaExhausted || groqQuotaExhausted) {
+        const exhausted = [
+          openrouterQuotaExhausted ? "OpenRouter (50 gratis/día)" : null,
+          groqQuotaExhausted ? "Groq (cuota gratis)" : null,
+        ]
+          .filter(Boolean)
+          .join(" y ");
         return new NextResponse(
-          "Tu cuota gratuita de OpenRouter (50 requests/día) se agotó. Agrega créditos en https://openrouter.ai/credits o vuelve mañana.",
+          `Cuotas gratuitas agotadas (${exhausted}). Vuelve mañana o conecta tu propia clave en Ajustes > Avanzado para generaciones ilimitadas.`,
           { status: 429 }
         );
       }

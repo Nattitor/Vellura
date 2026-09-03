@@ -257,11 +257,12 @@ CRITICAL FORMATTING & SPACING RULES:
 - Output ONLY the clean markdown resume text. Do NOT include introductory greetings or closing notes.`;
 
     // 5. Multi-Provider AI Cascade Runner
-    // EXACT ORDER:
-    // 1st: Google direct (multimodal PDF support) - if no OpenRouter key
-    // 2nd: Nemotron 3 Ultra (best reasoning)
-    // 3rd: Gemma 4 26B
-    // 4th: GLM 5.2 (speed fallback)
+    // EXACT ORDER (Groq first — most reliable free quota):
+    // 1st: Groq Qwen3.8 27B (text path; scanned PDFs without extractable text
+    //   skip Groq and fall through to Google multimodal below)
+    // 2nd-3rd: Google direct (Gemini 3.7 Flash + Gemma 4 31B, multimodal PDF support)
+    // 4th-8th: OpenRouter free-tier (Nemotron Ultra/Super, Gemma 26B, Inkling, GLM 5.2)
+    // Tier 3 local fallback (formatRawResumeTextLocally) runs if every candidate fails.
     let structuredResumeText = "";
     let lastAiError: string | null = null;
 
@@ -273,6 +274,7 @@ CRITICAL FORMATTING & SPACING RULES:
 
     const openrouterKey = userKeys.openrouter || process.env.OPENROUTER_API_KEY;
     const googleKey = userKeys.google || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    const groqKey = userKeys.groq || process.env.GROQ_API_KEY;
 
     const getOpenRouterClient = () => {
       if (!openrouterKey) return null;
@@ -280,7 +282,7 @@ CRITICAL FORMATTING & SPACING RULES:
         baseURL: "https://openrouter.ai/api/v1",
         apiKey: openrouterKey,
         headers: {
-          "HTTP-Referer": "https://vellura.ai",
+          "HTTP-Referer": "https://vellura.vercel.app",
           "X-Title": "Vellura AI Resume Parser",
         },
       });
@@ -288,7 +290,32 @@ CRITICAL FORMATTING & SPACING RULES:
 
     const openrouterClient = getOpenRouterClient();
 
-    // Google direct FIRST if available (no key required for system, multimodal PDF support)
+    const getGroqClient = () => {
+      if (!groqKey) return null;
+      return createOpenAI({
+        baseURL: "https://api.groq.com/openai/v1",
+        apiKey: groqKey,
+      });
+    };
+
+    const groqClient = getGroqClient();
+
+    // Groq direct FIRST (most reliable, independent free quota, no credit card).
+    // Text-only path (multimodal PDF falls through to Google direct below,
+    // which sets canMultimodalPdf).
+    if (groqClient) {
+      aiCandidates.push({
+        name: "Qwen3.8 27B (Groq)",
+        getModel: () => groqClient("qwen/qwen3.8-27b"),
+      });
+    }
+
+    // GPT-OSS 120B intentionally NOT included here: structuring a resume
+    // doesn't need a 120B reasoner, and a Groq 429 on Qwen would likely
+    // repeat on the same account. Single Groq attempt → fast failover.
+    // (GPT-OSS 120B remains the reasoning candidate in app/api/generate.)
+
+    // Google direct AFTER Groq (multimodal PDF support)
     if (googleKey) {
       const googleClient = createGoogleGenerativeAI({ apiKey: googleKey });
       aiCandidates.push({
@@ -303,7 +330,8 @@ CRITICAL FORMATTING & SPACING RULES:
       });
     }
 
-    // 1st Priority: Nemotron 3 Ultra 550B (best reasoning free model)
+    // 1st OpenRouter Priority: Nemotron 3 Ultra 550B (best reasoning free model)
+
     if (openrouterClient) {
       aiCandidates.push({
         name: "Nemotron 3 Ultra 550B (OpenRouter)",

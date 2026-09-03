@@ -1,4 +1,4 @@
-export type ModelProviderTag = "google" | "openai" | "anthropic" | "deepseek" | "openrouter" | "other";
+export type ModelProviderTag = "google" | "openai" | "anthropic" | "deepseek" | "openrouter" | "groq" | "other";
 
 export interface ModelDisplayInfo {
   label: string;
@@ -24,6 +24,9 @@ export function getModelDisplayInfo(modelName: string = ""): ModelDisplayInfo {
   if (lower.includes("sonnet")) return { label: "Claude 5 Sonnet", provider: "anthropic", badgeColor: "border-amber-500/30 bg-amber-950/50 text-amber-300" };
   if (lower.includes("fable")) return { label: "Claude 5 Fable", provider: "anthropic", badgeColor: "border-amber-500/30 bg-amber-950/50 text-amber-300" };
   if (lower.includes("deepseek-v4-pro") || lower.includes("deepseek-v3.2")) return { label: "DeepSeek V4", provider: "deepseek", badgeColor: "border-cyan-500/30 bg-cyan-950/50 text-cyan-300" };
+  if (lower.includes("qwen3.8") || lower.includes("qwen3-32b") || lower.includes("qwen/qwen3")) return { label: "Qwen3.8 27B (Groq)", provider: "groq", badgeColor: "border-orange-500/30 bg-orange-950/50 text-orange-300" };
+  if (lower.includes("gpt-oss-120b")) return { label: "GPT-OSS 120B (Groq)", provider: "groq", badgeColor: "border-orange-500/30 bg-orange-950/50 text-orange-300" };
+  if (lower.includes("gpt-oss")) return { label: "GPT-OSS (Groq)", provider: "groq", badgeColor: "border-orange-500/30 bg-orange-950/50 text-orange-300" };
   if (lower.includes("nemotron-3-ultra")) return { label: "Nemotron 3 Ultra 550B", provider: "openrouter", badgeColor: "border-amber-500/30 bg-amber-950/50 text-amber-300" };
   if (lower.includes("nemotron-3-super")) return { label: "Nemotron 3 Super 120B", provider: "openrouter", badgeColor: "border-amber-500/30 bg-amber-950/50 text-amber-300" };
   if (lower.includes("nemotron-3.5")) return { label: "Nemotron 3.5 Lightning", provider: "openrouter", badgeColor: "border-amber-500/30 bg-amber-950/50 text-amber-300" };

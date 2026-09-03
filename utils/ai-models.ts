@@ -1,4 +1,4 @@
-export type AIProviderId = "google" | "openai" | "anthropic" | "deepseek" | "openrouter";
+export type AIProviderId = "google" | "openai" | "anthropic" | "deepseek" | "openrouter" | "groq";
 
 export interface AIModelDefinition {
   id: string;
@@ -59,6 +59,14 @@ export const AI_PROVIDERS: Record<AIProviderId, AIProviderDefinition> = {
     iconColor: "text-violet-400",
     placeholder: "sk-or-v1-...",
     helpUrl: "https://openrouter.ai/keys"
+  },
+  groq: {
+    id: "groq",
+    name: "Groq",
+    description: "Inferencia ultrarrápida en hardware LPU, tier gratis sin tarjeta.",
+    iconColor: "text-orange-400",
+    placeholder: "gsk_...",
+    helpUrl: "https://console.groq.com/keys"
   }
 };
 
@@ -159,6 +167,12 @@ export const MODEL_DESCRIPTIONS: Record<string, Record<string, string>> = {
     French: "Accès gratuit via OpenRouter avec raisonnement intégré.",
     Portuguese: "Acesso gratuito via OpenRouter com raciocínio integrado.",
   },
+  "google/gemma-4-26b-a4b-it:free": {
+    English: "Optimized Gemma 4 model with 26B parameters for fast reasoning.",
+    Spanish: "Modelo optimizado Gemma 4 con 26B parámetros para razonamiento ágil.",
+    French: "Modèle optimisé Gemma 4 avec 26B paramètres pour un raisonnement agile.",
+    Portuguese: "Modelo otimizado Gemma 4 com 26B parâmetros para raciocínio ágil.",
+  },
   "openrouter/free": {
     English: "Auto-routes to the best available free frontier models.",
     Spanish: "Enruta automáticamente a los mejores modelos gratuitos disponibles.",
@@ -225,6 +239,21 @@ export const MODEL_DESCRIPTIONS: Record<string, Record<string, string>> = {
     French: "Grand modèle de NVIDIA avec excellent raisonnement pour analyses complexes.",
     Portuguese: "Modelo grande da NVIDIA com excelente raciocínio para análises complexas.",
   },
+  // Groq direct (OpenAI-compatible endpoint, free tier without credit card).
+  // NOTE: verify IDs against GET https://api.groq.com/openai/v1/models —
+  // Groq retires model versions periodically (verified 2026-09-03).
+  "qwen/qwen3.8-27b": {
+    English: "Alibaba's 27B Qwen3.8 on Groq LPUs, fast persuasive writing.",
+    Spanish: "Qwen3.8 27B de Alibaba en LPUs de Groq, redacción persuasiva rápida.",
+    French: "Qwen3.8 27B d'Alibaba sur LPU Groq, rédaction persuasive rapide.",
+    Portuguese: "Qwen3.8 27B da Alibaba em LPUs da Groq, redação persuasiva rápida.",
+  },
+  "openai/gpt-oss-120b": {
+    English: "OpenAI's 120B reasoning model on Groq LPUs, deep chain-of-thought.",
+    Spanish: "Modelo de razonamiento 120B de OpenAI en LPUs de Groq, cadena de pensamiento profunda.",
+    French: "Modèle de raisonnement 120B d'OpenAI sur LPU Groq, chaîne de pensée profonde.",
+    Portuguese: "Modelo de raciocínio 120B da OpenAI em LPUs da Groq, cadeia de pensamento profunda.",
+  },
 };
 
 export const PROVIDER_DESCRIPTIONS: Record<AIProviderId, Record<string, string>> = {
@@ -257,6 +286,12 @@ export const PROVIDER_DESCRIPTIONS: Record<AIProviderId, Record<string, string>>
     Spanish: "Acceso unificado a más de 400 modelos y modelos libres.",
     French: "Accès unifié à plus de 400 modèles et endpoints gratuits.",
     Portuguese: "Acesso unificado a mais de 400 modelos e opções gratuitas.",
+  },
+  groq: {
+    English: "Ultra-fast inference on LPU hardware, free tier with no credit card.",
+    Spanish: "Inferencia ultrarrápida en hardware LPU, tier gratis sin tarjeta.",
+    French: "Inférence ultra-rapide sur matériel LPU, offre gratuite sans carte bancaire.",
+    Portuguese: "Inferência ultrarrápida em hardware LPU, plano gratuito sem cartão.",
   },
 };
 
@@ -513,6 +548,15 @@ export const AI_MODELS: AIModelDefinition[] = [
     recommendedFor: "reasoning"
   },
   {
+    id: "google/gemma-4-26b-a4b-it:free",
+    name: "Gemma 4 26B (OpenRouter Free)",
+    provider: "openrouter",
+    description: "Versión optimizada de Gemma 4 con 26B parámetros y razonamiento ágil.",
+    isFree: true,
+    badge: "Free Tier",
+    recommendedFor: "reasoning"
+  },
+  {
     id: "openrouter/free",
     name: "Auto-Router (Best Free Model)",
     provider: "openrouter",
@@ -521,8 +565,28 @@ export const AI_MODELS: AIModelDefinition[] = [
     badge: "Free Tier",
     recommendedFor: "speed"
   },
+
+  // Groq direct (system key, free tier without credit card)
+  {
+    id: "qwen/qwen3.8-27b",
+    name: "Qwen3.8 27B (Groq Free)",
+    provider: "groq",
+    description: "Qwen3.8 27B de Alibaba en LPUs de Groq, redacción persuasiva rápida.",
+    isFree: true,
+    badge: "Free Tier",
+    recommendedFor: "speed"
+  },
+  {
+    id: "openai/gpt-oss-120b",
+    name: "GPT-OSS 120B (Groq Free)",
+    provider: "groq",
+    description: "Modelo de razonamiento 120B de OpenAI en LPUs de Groq.",
+    isFree: true,
+    badge: "Free Tier",
+    recommendedFor: "reasoning"
+  },
 ];
 
-// System defaults for standard non-expert users ($0 Cost)
-export const DEFAULT_SPEED_MODEL = "gemini-3.7-flash";
-export const DEFAULT_REASONING_MODEL = "gemma-4-31b-it";
+// System defaults for standard non-expert users ($0 Cost, Groq first)
+export const DEFAULT_SPEED_MODEL = "qwen/qwen3.8-27b";
+export const DEFAULT_REASONING_MODEL = "openai/gpt-oss-120b";
