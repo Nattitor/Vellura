@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { Topbar } from "@/components/dashboard/Topbar";
+import { BottomNav } from "@/components/dashboard/BottomNav";
 import { LanguageProvider } from "@/components/providers/language-provider";
 import { AvatarProvider } from "@/components/providers/avatar-provider";
 import { QuotaProvider } from "@/components/providers/quota-provider";
@@ -52,9 +53,11 @@ export default async function DashboardLayout({
         <QuotaProvider initialLimit={effectiveLimit}>
           <div className="min-h-screen bg-deep-void selection:bg-amethyst-glow/30 selection:text-white flex flex-col">
             <Topbar userEmail={user.email || "User"} />
-            <main className="flex-1 flex flex-col">
+            {/* F1 mobile: bottom padding clears the fixed tab bar (+ safe-area) */}
+            <main className="flex-1 flex flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">
               {children}
             </main>
+            <BottomNav />
           </div>
         </QuotaProvider>
       </AvatarProvider>

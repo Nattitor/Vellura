@@ -58,8 +58,8 @@ export function Topbar({ userEmail }: { userEmail: string; dailyLimit?: number }
           </Link>
         </div>
 
-        {/* Center: Navigation */}
-        <nav className="flex items-center space-x-1 sm:space-x-4">
+        {/* Center: Navigation (desktop only — phones use the bottom tab bar) */}
+        <nav className="hidden md:flex items-center space-x-1 sm:space-x-4">
           <Link
             href="/dashboard"
             className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -93,10 +93,12 @@ export function Topbar({ userEmail }: { userEmail: string; dailyLimit?: number }
         </nav>
 
         {/* Right: Credits & Profile */}
-        <div className="flex items-center space-x-4">
-          <div className="hidden sm:flex items-center px-3 py-1.5 rounded-full bg-amethyst-glow/10 border border-amethyst-glow/20">
+        <div className="flex items-center gap-2 sm:space-x-4">
+          {/* Quota pill: compact on phones (number only), full label on sm+ */}
+          <div className="flex items-center px-2.5 sm:px-3 py-1.5 rounded-full bg-amethyst-glow/10 border border-amethyst-glow/20">
             <span className="text-xs font-medium text-amethyst-glow flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> {dailyLimit} {t.nav.limitLeft}
+              <Sparkles className="w-3 h-3" /> {dailyLimit}
+              <span className="hidden min-[420px]:inline">{t.nav.limitLeft}</span>
             </span>
           </div>
 
@@ -164,7 +166,7 @@ export function Topbar({ userEmail }: { userEmail: string; dailyLimit?: number }
                     fileInputRef.current?.click();
                     setIsOpen(false);
                   }} 
-                  className="w-full hover:bg-white/10 text-zinc-200 hover:text-white transition-colors cursor-pointer py-2 px-2.5 text-xs flex items-center gap-2 rounded-lg text-left"
+                  className="w-full hover:bg-white/10 text-zinc-200 hover:text-white transition-colors touch-target cursor-pointer py-2 px-2.5 text-xs flex items-center gap-2 rounded-lg text-left"
                 >
                   <Camera className="w-3.5 h-3.5 text-amethyst-glow" />
                   <span>{t.nav.changeAvatar}</span>
@@ -177,7 +179,7 @@ export function Topbar({ userEmail }: { userEmail: string; dailyLimit?: number }
                       removeAvatar();
                       setIsOpen(false);
                     }} 
-                    className="w-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer py-2 px-2.5 text-xs flex items-center gap-2 rounded-lg text-left"
+                    className="w-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors touch-target cursor-pointer py-2 px-2.5 text-xs flex items-center gap-2 rounded-lg text-left"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-zinc-500" />
                     <span>{t.nav.removeAvatar}</span>
@@ -187,7 +189,7 @@ export function Topbar({ userEmail }: { userEmail: string; dailyLimit?: number }
                 <Link 
                   href="/dashboard/settings" 
                   onClick={() => setIsOpen(false)}
-                  className="w-full hover:bg-white/10 text-zinc-200 hover:text-white transition-colors cursor-pointer py-2 px-2.5 text-xs rounded-lg flex items-center gap-2 block"
+                  className="w-full hover:bg-white/10 text-zinc-200 hover:text-white transition-colors touch-target cursor-pointer py-2 px-2.5 text-xs rounded-lg flex items-center gap-2 block"
                 >
                   <Settings className="w-3.5 h-3.5 text-cyan-400" />
                   <span>{t.nav.settings}</span>
@@ -199,7 +201,7 @@ export function Topbar({ userEmail }: { userEmail: string; dailyLimit?: number }
                     window.dispatchEvent(new CustomEvent("open-onboarding-wizard"));
                     setIsOpen(false);
                   }} 
-                  className="w-full hover:bg-white/10 text-zinc-200 hover:text-white transition-colors cursor-pointer py-2 px-2.5 text-xs rounded-lg flex items-center gap-2 text-left"
+                  className="w-full hover:bg-white/10 text-zinc-200 hover:text-white transition-colors touch-target cursor-pointer py-2 px-2.5 text-xs rounded-lg flex items-center gap-2 text-left"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amethyst-glow" />
                   <span>{t.onboarding?.modalBadge || "Quick Setup Guide"}</span>
@@ -210,7 +212,7 @@ export function Topbar({ userEmail }: { userEmail: string; dailyLimit?: number }
                 <button 
                   type="button"
                   onClick={() => logout()}
-                  className="w-full text-red-400 hover:bg-red-500/10 hover:text-red-400 transition-colors cursor-pointer py-2 px-2.5 text-xs flex items-center gap-2 rounded-lg text-left"
+                  className="w-full text-red-400 hover:bg-red-500/10 hover:text-red-400 transition-colors touch-target cursor-pointer py-2 px-2.5 text-xs flex items-center gap-2 rounded-lg text-left"
                 >
                   <LogOut className="w-3.5 h-3.5 text-red-400" />
                   <span>{t.nav.logout}</span>
