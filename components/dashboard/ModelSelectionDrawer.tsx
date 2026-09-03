@@ -86,6 +86,7 @@ export function ModelSelectionDrawer({
   const [temp, setTemp] = useState(initialTemp);
   const [directives, setDirectives] = useState(initialDirectives);
   const [showBYOKWarning, setShowBYOKWarning] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
 
   // Sync state when opened
   const handleOpenState = (newOpen: boolean) => {
@@ -95,6 +96,7 @@ export function ModelSelectionDrawer({
       setTemp(initialTemp);
       setDirectives(initialDirectives);
       setActiveTab("models");
+      setIsCompact(false);
     }
     onOpenChange(newOpen);
   };
@@ -197,17 +199,21 @@ export function ModelSelectionDrawer({
       <Sheet open={open} onOpenChange={handleOpenState}>
         <SheetContent side="right" className="w-full sm:max-w-xl md:max-w-2xl bg-zinc-950/95 border-l border-white/15 p-0 flex flex-col h-full overflow-hidden shadow-2xl backdrop-blur-xl">
           
-          {/* Header with Navigation Tabs */}
-          <div className="p-4 sm:p-6 border-b border-white/10 shrink-0 space-y-4">
+          {/* Header with Navigation Tabs (compacts on scroll: title/desc collapse, tabs+search stay) */}
+          <div className={`border-b border-white/10 shrink-0 motion-safe:transition-all motion-safe:duration-200 ${isCompact ? "p-3 sm:p-6 space-y-2" : "p-4 sm:p-6 space-y-4"}`}>
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <SheetTitle className="text-xl font-semibold text-white flex items-center gap-2.5">
+                <SheetTitle className={`font-semibold text-white flex items-center gap-2.5 motion-safe:transition-all motion-safe:duration-200 ${isCompact ? "text-base" : "text-xl"}`}>
                   <Sliders className="w-5 h-5 text-cyan-400" />
                   <span>{t.workspace.expertModalTitle}</span>
                 </SheetTitle>
-                <SheetDescription className="text-xs text-zinc-400">
-                  {t.workspace.expertModalDesc}
-                </SheetDescription>
+                <div className={`grid motion-safe:transition-all motion-safe:duration-200 ${isCompact ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"}`}>
+                  <div className="overflow-hidden">
+                    <SheetDescription className="text-xs text-zinc-400">
+                      {t.workspace.expertModalDesc}
+                    </SheetDescription>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -296,7 +302,13 @@ export function ModelSelectionDrawer({
           </div>
 
           {/* Middle Content Area (Constrained flex-1 with native smooth overflow scroll) */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
+          <div
+            className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6"
+            onScroll={(e) => {
+              const v = e.currentTarget.scrollTop > 24;
+              setIsCompact((prev) => (prev === v ? prev : v));
+            }}
+          >
             {activeTab === "models" ? (
               /* TAB 1: MODEL CATALOG (Google AI Studio Cards) */
               <div className="space-y-3 pb-4">
