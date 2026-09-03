@@ -229,14 +229,14 @@ export function ModelSelectionDrawer({
         <SheetContent side="right" className="w-full sm:max-w-xl md:max-w-2xl bg-zinc-950/95 border-l border-white/15 p-0 flex flex-col h-full overflow-hidden shadow-2xl backdrop-blur-xl">
           
           {/* Header with Navigation Tabs (compacts on scroll: title/desc collapse, tabs+search stay) */}
-          <div ref={headerRef} data-compact="false" className="group border-b border-white/10 shrink-0 p-4 sm:p-6 space-y-4 motion-safe:transition-all motion-safe:duration-200 group-data-[compact=true]:p-3 group-data-[compact=true]:space-y-2">
+          <div ref={headerRef} data-compact="false" className="group border-b border-white/10 shrink-0 p-4 sm:p-6 space-y-4 data-[compact=true]:p-3 data-[compact=true]:space-y-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <SheetTitle className="font-semibold text-white flex items-center gap-2.5 text-xl motion-safe:transition-all motion-safe:duration-200 group-data-[compact=true]:text-base">
+                <SheetTitle className="font-semibold text-white flex items-center gap-2.5 text-xl group-data-[compact=true]:text-base">
                   <Sliders className="w-5 h-5 text-cyan-400" />
                   <span>{t.workspace.expertModalTitle}</span>
                 </SheetTitle>
-                <div className="grid grid-rows-[1fr] opacity-100 motion-safe:transition-all motion-safe:duration-200 group-data-[compact=true]:grid-rows-[0fr] group-data-[compact=true]:opacity-0">
+                <div className="max-h-12 overflow-hidden opacity-100 motion-safe:transition-[max-height,opacity] motion-safe:duration-150 motion-safe:ease-out group-data-[compact=true]:max-h-0 group-data-[compact=true]:opacity-0">
                   <div className="overflow-hidden">
                     <SheetDescription className="text-xs text-zinc-400">
                       {t.workspace.expertModalDesc}
