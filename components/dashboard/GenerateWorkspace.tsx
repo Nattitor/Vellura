@@ -37,6 +37,7 @@ import {
   Key,
   RotateCcw,
   AlertTriangle,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,7 @@ import { AI_MODELS, AIProviderId, DEFAULT_SPEED_MODEL, AI_PROVIDERS } from "@/ut
 import { ModelSelectionDrawer } from "@/components/dashboard/ModelSelectionDrawer";
 import { stripMetadataComments, extractCompanyAndRole } from "@/utils/extract-company";
 import { getModelDisplayInfo } from "@/utils/model-display";
+import { exportDocumentToPDF } from "@/lib/pdf";
 
 export function GenerateWorkspace({
   configuredProviders = [],
@@ -181,7 +183,13 @@ export function GenerateWorkspace({
     }
     
     if (!isUsingOwnKey && dailyLimit <= 0) {
-      toast.error(t.workspace.limitReached || "You've reached your daily limit!");
+      toast.error(t.workspace.limitReached || "You've used your 5 generations for today.", {
+        duration: 8000,
+        action: {
+          label: t.workspace.checkApiKeysBtn || "Connect API Key",
+          onClick: () => router.push("/dashboard/settings?tab=advanced"),
+        },
+      });
       return;
     }
 
@@ -229,43 +237,10 @@ export function GenerateWorkspace({
     if (!cleanCompletion) return;
     try {
       setIsDownloadingPDF(true);
-      const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF();
-
-      let plainText = cleanCompletion
-        .replace(/<!--[\s\S]*?-->/g, "")
-        .replace(/\*\*(.*?)\*\*/g, "$1")
-        .replace(/\*(.*?)\*/g, "$1")
-        .replace(/#{1,6}\s?/g, "")
-        .trim();
-
-      doc.setFont("times", "normal");
-      doc.setFontSize(11);
-
-      const margin = 20;
-      const pdfWidth = doc.internal.pageSize.getWidth();
-      const maxLineWidth = pdfWidth - margin * 2;
-
-      const lines = doc.splitTextToSize(plainText, maxLineWidth);
-
-      let y = 20;
-      const lineHeight = 7;
-
-      for (let i = 0; i < lines.length; i++) {
-        if (y > doc.internal.pageSize.getHeight() - margin) {
-          doc.addPage();
-          y = margin;
-        }
-        doc.text(lines[i], margin, y);
-        y += lineHeight;
-      }
-
-      const cleanTarget = (detectedTarget || "cover-letter")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .slice(0, 35);
-
-      doc.save(`vellura-${cleanTarget}.pdf`);
+      await exportDocumentToPDF({
+        content: cleanCompletion,
+        targetName: detectedTarget || "cover-letter",
+      });
       toast.success("PDF exported successfully!");
     } catch (error) {
       toast.error("Failed to generate PDF");
@@ -517,7 +492,7 @@ export function GenerateWorkspace({
 
           </div>
 
-          {/* Submit Button (Pinned Bottom) */}
+            {/* Submit Button (Pinned Bottom) */}
           <div className="pt-4 shrink-0 border-t border-white/5 mt-2">
             <Button
               onClick={handleGenerate}
@@ -536,6 +511,12 @@ export function GenerateWorkspace({
                 </>
               )}
             </Button>
+
+            {/* Privacy & Secure Data Notice */}
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-500 pt-2.5 px-1 text-center select-none">
+              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400/80 shrink-0" />
+              <span>{t.workspace.privacyDisclaimer}</span>
+            </div>
           </div>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { useState, useTransition, useRef, useEffect } from "react";
 import { updateResume } from "@/app/actions/profile";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, Camera, Trash2, User, FileUp, Sparkles, Brain, Search, FileText, UploadCloud } from "lucide-react";
+import { Loader2, CheckCircle2, Camera, Trash2, User, FileUp, Sparkles, Brain, Search, FileText, UploadCloud, ShieldCheck } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useLanguage } from "@/components/providers/language-provider";
 import { useAvatar } from "@/components/providers/avatar-provider";
@@ -301,7 +301,12 @@ export function ProfileForm({
             <p className="text-sm text-red-500">{errorMessage}</p>
           )}
 
-          <div className="flex justify-end pt-4 relative z-10">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 relative z-10">
+            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+              <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>{t.workspace.privacyBadge}</span>
+            </div>
+
             <Button
               onClick={handleSave}
               disabled={isPending || isParsing || resume === initialResume}

@@ -28,6 +28,7 @@ import { useLanguage } from "@/components/providers/language-provider";
 import { extractCompanyAndRole } from "@/utils/extract-company";
 import { getModelDisplayInfo as getModelInfo } from "@/utils/model-display";
 import { deleteDocument } from "@/app/actions/documents";
+import { exportDocumentToPDF } from "@/lib/pdf";
 import {
   Dialog,
   DialogContent,
@@ -172,39 +173,10 @@ export default function HistoryList({ initialDocuments }: { initialDocuments: Do
   const handleDownloadPDF = async (content: string, id: string) => {
     try {
       setDownloadingId(id);
-      
-      const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF();
-      
-      let plainText = content
-        .replace(/<!--[\s\S]*?-->/g, "")
-        .replace(/\*\*(.*?)\*\*/g, "$1")
-        .replace(/\*(.*?)\*/g, "$1")
-        .replace(/#{1,6}\s?/g, "")
-        .trim();
-        
-      doc.setFont("times", "normal");
-      doc.setFontSize(11);
-      
-      const margin = 20;
-      const pdfWidth = doc.internal.pageSize.getWidth();
-      const maxLineWidth = pdfWidth - margin * 2;
-      
-      const lines = doc.splitTextToSize(plainText, maxLineWidth);
-      
-      let y = 20;
-      const lineHeight = 7;
-      
-      for (let i = 0; i < lines.length; i++) {
-        if (y > doc.internal.pageSize.getHeight() - margin) {
-          doc.addPage();
-          y = margin;
-        }
-        doc.text(lines[i], margin, y);
-        y += lineHeight;
-      }
-      
-      doc.save(`vellura-cover-letter-${id.slice(0,6)}.pdf`);
+      await exportDocumentToPDF({
+        content,
+        fileName: `vellura-cover-letter-${id.slice(0, 6)}.pdf`,
+      });
       toast.success("PDF exported successfully!");
     } catch (error) {
       toast.error("Failed to generate PDF");

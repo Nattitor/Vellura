@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -15,16 +15,34 @@ import { updateProfile } from "@/app/actions/profile";
 import { useLanguage } from "@/components/providers/language-provider";
 import { LanguageType } from "@/utils/i18n/dictionaries";
 
-export function PreferencesForm({ initialOutputLanguage = "English" }: { initialOutputLanguage?: string }) {
+export function PreferencesForm({ 
+  initialUiLanguage,
+  initialOutputLanguage = "English" 
+}: { 
+  initialUiLanguage?: string;
+  initialOutputLanguage?: string; 
+}) {
   const { language, setLanguage, outputLanguage: contextOutputLang, setOutputLanguage: setContextOutputLang, t } = useLanguage();
-  const [uiLanguage, setUiLanguage] = useState<LanguageType>(language);
+  const [uiLanguage, setUiLanguage] = useState<LanguageType>((initialUiLanguage as LanguageType) || language);
   const [outputLanguage, setOutputLanguage] = useState(contextOutputLang || initialOutputLanguage);
+  // Track whether the user has manually overridden output language; if not, sync with UI language.
+  const [outputLanguageTouched, setOutputLanguageTouched] = useState(
+    contextOutputLang !== undefined && contextOutputLang !== (initialUiLanguage as string)
+  );
   const [isPending, setIsPending] = useState(false);
+
+  // Keep output language in sync with UI language unless the user has manually picked a different one.
+  useEffect(() => {
+    if (!outputLanguageTouched) {
+      setOutputLanguage(uiLanguage);
+    }
+  }, [uiLanguage, outputLanguageTouched]);
 
   const handleSave = async () => {
     setIsPending(true);
     try {
       const { error } = await updateProfile({ 
+        ui_language: uiLanguage,
         output_language: outputLanguage
       });
       if (error) {

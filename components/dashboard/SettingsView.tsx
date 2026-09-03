@@ -21,6 +21,7 @@ interface AuthDetails {
 
 interface SettingsViewProps {
   initialResume: string;
+  uiLanguage?: string;
   outputLanguage: string;
   dailyLimit: number;
   hasBYOK: boolean;
@@ -30,6 +31,7 @@ interface SettingsViewProps {
 
 export function SettingsView({
   initialResume,
+  uiLanguage,
   outputLanguage,
   dailyLimit,
   hasBYOK,
@@ -117,7 +119,7 @@ export function SettingsView({
           {/* Right Column: Usage & Preferences */}
           <div className="space-y-8">
             <AIUsageForm dailyLimit={dailyLimit} hasBYOK={hasBYOK} />
-            <PreferencesForm initialOutputLanguage={outputLanguage} />
+            <PreferencesForm initialUiLanguage={uiLanguage} initialOutputLanguage={outputLanguage} />
           </div>
         </div>
       ) : activeTab === "security" ? (

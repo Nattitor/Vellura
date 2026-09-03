@@ -22,7 +22,7 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Fetch the user's profile to get daily limit, last generation date, and ui_language
+  // Fetch the user's profile to get daily limit, last generation date, ui_language and output_language
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
@@ -30,6 +30,13 @@ export default async function DashboardLayout({
     .single();
 
   const initialLang = (profile?.ui_language as LanguageType) || "Spanish";
+  // Sync the AI output language to the UI language whenever the DB column is empty
+  // or missing. This avoids the "Spanish UI but English letter" footgun for users
+  // who never opened Settings.
+  const initialOutputLang =
+    (profile?.output_language && String(profile.output_language).trim() !== ""
+      ? String(profile.output_language)
+      : null) || initialLang;
   const effectiveLimit = getEffectiveDailyLimit(profile);
   
   // Extract cloud avatar from profile or user metadata (Google OAuth picture)
@@ -40,7 +47,7 @@ export default async function DashboardLayout({
     null;
 
   return (
-    <LanguageProvider initialLanguage={initialLang}>
+    <LanguageProvider initialLanguage={initialLang} initialOutputLanguage={initialOutputLang}>
       <AvatarProvider initialAvatar={cloudAvatar}>
         <QuotaProvider initialLimit={effectiveLimit}>
           <div className="min-h-screen bg-deep-void selection:bg-amethyst-glow/30 selection:text-white flex flex-col">

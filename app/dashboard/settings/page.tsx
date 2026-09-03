@@ -39,6 +39,7 @@ export default async function SettingsPage() {
 
       <SettingsView
         initialResume={profile?.resume_text || ""}
+        uiLanguage={profile?.ui_language || "Spanish"}
         outputLanguage={profile?.output_language || "English"}
         dailyLimit={effectiveLimit}
         hasBYOK={hasBYOK}

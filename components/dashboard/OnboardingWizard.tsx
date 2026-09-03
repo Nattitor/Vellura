@@ -169,25 +169,38 @@ export function OnboardingWizard({
     startTransition(async () => {
       try {
         // 1. Save profile preferences & resume
-        await updateProfile({
+        const profileRes = await updateProfile({
           ui_language: uiLang,
           output_language: outLang,
           resume_text: resumeText,
         });
 
+        if (profileRes?.error) {
+          throw new Error(profileRes.error);
+        }
+
         // 2. Save avatar if custom file selected or keep google avatar
         if (avatarFile) {
-          await uploadAvatar(avatarFile);
+          const success = await uploadAvatar(avatarFile);
+          if (!success) {
+            console.warn("Avatar upload notice: failed to upload avatar");
+          }
         } else if (avatarPreview && avatarPreview === googleAvatarUrl) {
-          await updateAvatar(googleAvatarUrl);
+          const avatarRes = await updateAvatar(googleAvatarUrl);
+          if (avatarRes?.error) {
+            console.warn("Avatar sync notice:", avatarRes.error);
+          }
         }
 
         // 3. Save BYOK key if provided
         if (byokKey.trim()) {
-          await updateProviderKey(byokProvider, byokKey.trim());
+          const byokRes = await updateProviderKey(byokProvider, byokKey.trim());
+          if (byokRes?.error) {
+            throw new Error(byokRes.error);
+          }
         }
 
-        // 4. Mark local completion
+        // 4. Mark local completion ONLY on verified success
         localStorage.setItem(`vellura_onboarding_${userEmail}`, "true");
         setIsOpen(false);
         toast.success(dict.onboarding?.savedSuccess || "Welcome to Vellura! Your workspace is ready.");
