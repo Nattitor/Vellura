@@ -103,7 +103,7 @@ This roadmap tracks the construction of the Vellura Micro-SaaS. Each phase lists
 - [x] Mobile F2: Generate workspace phone layout — sticky button, 2-row output header, tap tooltip, 16px fields (commit `30285d3`).
 - [x] Mobile F2 fix: floating CTA only when the real button is off-screen (commit `0776845`).
 - [x] Mobile F3: Drawer + Onboarding phone layout — bottom-sheet onboarding, full-width drawer tabs, stacked footers (commit `99d2261`).
-- [ ] Mobile QA resto: Historial + Ajustes + Login (F4).
+- [x] Mobile F4: Historial + Ajustes + Login phone layout — touch targets, 16px fields, Groq filter chip (commits `282bf3c`, `4a68035`, `04470e5`).
 - [ ] Clipboard API rejection handling.
 
 ### Phase 11: Testing
