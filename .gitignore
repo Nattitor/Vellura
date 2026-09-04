@@ -44,3 +44,12 @@ next-env.d.ts
 scratch/
 *.mjs.log
 
+# internal working docs (never ship to GitHub)
+VELLURA_ROADMAP.md
+VELLURA_SPECS.md
+VELLURA_README.md
+VELLURA_CODESTYLE.md
+AUDIT_REPORT.md
+AUDITORIA_ACTUALIZADA.md
+_archive/
+
