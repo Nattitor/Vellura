@@ -49,7 +49,10 @@ export async function signup(formData: FormData) {
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback`,
+      // Email-confirmation flow (option 1): land on login with the verified
+      // banner instead of auto-entering the dashboard. The callback drops the
+      // exchanged session so nothing gets stranded in mail-app webviews.
+      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/login?verified=true")}`,
       data: {
         preferred_language: langCode,
         ui_language: preferredLanguage,

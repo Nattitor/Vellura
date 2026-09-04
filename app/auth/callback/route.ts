@@ -37,6 +37,13 @@ export async function GET(request: Request) {
         });
       }
 
+      // Email-confirmation flow (option 1): never strand a session in the
+      // opener (mobile mail apps open links in throwaway webviews). Drop the
+      // session created by the exchange and land on login with the banner.
+      if (next.startsWith("/login?verified=true")) {
+        await supabase.auth.signOut();
+      }
+
       const forwardedHost = request.headers.get("x-forwarded-host"); // original origin before load balancer
       const isLocalEnv = process.env.NODE_ENV === "development";
       if (isLocalEnv) {

@@ -38,6 +38,15 @@ export async function updateSession(request: NextRequest) {
 
   const isProtectedRoute = request.nextUrl.pathname.startsWith("/dashboard");
 
+  // Rescue: Supabase sometimes drops email-confirmation users at the site
+  // root (`/?code=...`) instead of /auth/callback (redirect_to fallback to
+  // Site URL). Forward them to the real handler preserving all params.
+  if (request.nextUrl.pathname === "/" && request.nextUrl.searchParams.has("code")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    return NextResponse.redirect(url);
+  }
+
   // Handle expired/invalid JWT. NOTE: getUser() also returns an error when
   // there is simply no session (never logged in), so only flag `expired`
   // when a real auth-token cookie exists. The match must EXCLUDE the PKCE
