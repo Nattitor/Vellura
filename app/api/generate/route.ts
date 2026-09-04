@@ -207,7 +207,7 @@ ${jobDescription}`;
         baseURL: "https://openrouter.ai/api/v1",
         apiKey: userKeys.openrouter || process.env.OPENROUTER_API_KEY,
         headers: {
-          "HTTP-Referer": "https://vellura.vercel.app",
+          "HTTP-Referer": "https://vellura-ai.vercel.app",
           "X-Title": "Vellura AI Workspace",
         },
       });

@@ -4,7 +4,7 @@
 
 Vellura is a full-stack Micro-SaaS that generates hyper-personalized cover letters and pitches. Built to senior-level engineering standards, it features real-time AI streaming, multi-provider routing, encrypted BYOK, atomic quota persistence, secure database architecture, and strict "Ethereal Minimalist" design principles.
 
-> **Live demo:** [vellura.vercel.app](https://vellura.vercel.app) (Vercel free tier — no custom domain, hosting cost $0, working portfolio piece)
+> **Live demo:** [vellura-ai.vercel.app](https://vellura-ai.vercel.app) (Vercel free tier — no custom domain, hosting cost $0, working portfolio piece)
 
 ---
 

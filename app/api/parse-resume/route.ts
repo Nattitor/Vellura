@@ -282,7 +282,7 @@ CRITICAL FORMATTING & SPACING RULES:
         baseURL: "https://openrouter.ai/api/v1",
         apiKey: openrouterKey,
         headers: {
-          "HTTP-Referer": "https://vellura.vercel.app",
+          "HTTP-Referer": "https://vellura-ai.vercel.app",
           "X-Title": "Vellura AI Resume Parser",
         },
       });
