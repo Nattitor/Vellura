@@ -1,16 +1,67 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="v-p" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#B07FFF"/>
-      <stop offset="1" stop-color="#7B3FD4"/>
+    <linearGradient id="f-purple-edge" x1="110" y1="220" x2="400" y2="780" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6741C8"/>
+      <stop offset="0.45" stop-color="#974BEE"/>
+      <stop offset="0.75" stop-color="#D66BEA"/>
+      <stop offset="1" stop-color="#8C4AE1"/>
     </linearGradient>
-    <linearGradient id="v-c" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5DECF0"/>
-      <stop offset="1" stop-color="#139AD9"/>
+    <linearGradient id="f-purple-main" x1="170" y1="230" x2="430" y2="770" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#37216D"/>
+      <stop offset="0.35" stop-color="#6631B5"/>
+      <stop offset="0.68" stop-color="#8A28C9"/>
+      <stop offset="1" stop-color="#A85EE5"/>
+    </linearGradient>
+    <linearGradient id="f-purple-light" x1="190" y1="220" x2="400" y2="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9A6DE9" stop-opacity="0.15"/>
+      <stop offset="0.55" stop-color="#9C54F5" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#D56DF3" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="f-cyan-edge" x1="890" y1="220" x2="600" y2="780" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#58E8EF"/>
+      <stop offset="0.3" stop-color="#2CD8E7"/>
+      <stop offset="0.65" stop-color="#27B9EC"/>
+      <stop offset="1" stop-color="#4BC9F4"/>
+    </linearGradient>
+    <linearGradient id="f-cyan-main" x1="830" y1="230" x2="570" y2="770" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#42D9E1"/>
+      <stop offset="0.4" stop-color="#17BDD8"/>
+      <stop offset="0.72" stop-color="#139AD9"/>
+      <stop offset="1" stop-color="#1F7BE0"/>
+    </linearGradient>
+    <linearGradient id="f-cyan-light" x1="600" y1="220" x2="820" y2="450" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B4FFFF" stop-opacity="0.25"/>
+      <stop offset="0.45" stop-color="#59EEF2" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#55D9EF" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="f-center" x1="450" y1="500" x2="560" y2="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D6CBFF" stop-opacity="0.12"/>
+      <stop offset="0.32" stop-color="#FFFFFF" stop-opacity="0.78"/>
+      <stop offset="0.55" stop-color="#E7F7FF" stop-opacity="0.62"/>
+      <stop offset="0.8" stop-color="#A9E8FF" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#7ED9FF" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="f-highlight" x1="425" y1="520" x2="585" y2="665" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.38" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.52" stop-color="#FFFFFF" stop-opacity="0.88"/>
+      <stop offset="0.64" stop-color="#FFFFFF" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="14" fill="#09090B"/>
-  <path d="M17 15 L30 47" stroke="url(#v-p)" stroke-width="9" stroke-linecap="round"/>
-  <path d="M47 15 L30 47" stroke="url(#v-c)" stroke-width="9" stroke-linecap="round"/>
-  <path d="M32 21 l2.2 4.8 4.8 2.2 -4.8 2.2 -2.2 4.8 -2.2 -4.8 -4.8 -2.2 4.8 -2.2 Z" fill="#FFFFFF" opacity="0.95"/>
+  <g transform="translate(4 4) scale(0.056)">
+    <path d="M110 220 L400 220 L500 515 L630 780 L370 780 Z" fill="url(#f-purple-edge)"/>
+    <path d="M120 227 L397 227 L500 515 L370 770 Z" fill="url(#f-purple-main)"/>
+    <path d="M120 227 L397 227 L500 515 Z" fill="url(#f-purple-light)"/>
+    <path d="M600 220 L890 220 L630 780 L370 780 L500 515 Z" fill="url(#f-cyan-edge)"/>
+    <path d="M603 227 L880 227 L630 770 L500 515 Z" fill="url(#f-cyan-main)"/>
+    <path d="M603 227 L880 227 L500 515 Z" fill="url(#f-cyan-light)"/>
+    <path d="M500 515 L370 770 L630 770 Z" fill="url(#f-center)" fill-opacity="0.48"/>
+    <path d="M500 515 L555 625 L630 770 L500 700 L370 770 L445 625 Z" fill="url(#f-center)" fill-opacity="0.62"/>
+    <path d="M435 535 L500 515 L585 675 L548 640 Z" fill="url(#f-highlight)"/>
+    <path d="M110 220 L400 220" stroke="#8D61E8" stroke-width="6"/>
+    <path d="M600 220 L890 220" stroke="#5DECF0" stroke-width="6"/>
+    <path d="M370 780 L630 780" stroke="#D9E8FF" stroke-opacity="0.7" stroke-width="5"/>
+  </g>
 </svg>
