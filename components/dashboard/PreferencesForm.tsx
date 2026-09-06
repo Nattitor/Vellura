@@ -14,20 +14,24 @@ import { toast } from "sonner";
 import { updateProfile } from "@/app/actions/profile";
 import { useLanguage } from "@/components/providers/language-provider";
 import { LanguageType } from "@/utils/i18n/dictionaries";
+import { normalizeOutputLanguage } from "@/utils/i18n/normalize-language";
 
-export function PreferencesForm({ 
+export function PreferencesForm({
   initialUiLanguage,
-  initialOutputLanguage = "English" 
-}: { 
+  initialOutputLanguage = "English"
+}: {
   initialUiLanguage?: string;
-  initialOutputLanguage?: string; 
+  initialOutputLanguage?: string;
 }) {
   const { language, setLanguage, outputLanguage: contextOutputLang, setOutputLanguage: setContextOutputLang, t } = useLanguage();
   const [uiLanguage, setUiLanguage] = useState<LanguageType>((initialUiLanguage as LanguageType) || language);
-  const [outputLanguage, setOutputLanguage] = useState(contextOutputLang || initialOutputLanguage);
+  const [outputLanguage, setOutputLanguage] = useState(
+    () => normalizeOutputLanguage(contextOutputLang || initialOutputLanguage, "Spanish")
+  );
   // Track whether the user has manually overridden output language; if not, sync with UI language.
   const [outputLanguageTouched, setOutputLanguageTouched] = useState(
-    contextOutputLang !== undefined && contextOutputLang !== (initialUiLanguage as string)
+    contextOutputLang !== undefined &&
+      normalizeOutputLanguage(contextOutputLang, "Spanish") !== (initialUiLanguage as string)
   );
   const [isPending, setIsPending] = useState(false);
 
@@ -41,7 +45,7 @@ export function PreferencesForm({
   const handleSave = async () => {
     setIsPending(true);
     try {
-      const { error } = await updateProfile({ 
+      const { error } = await updateProfile({
         ui_language: uiLanguage,
         output_language: outputLanguage
       });

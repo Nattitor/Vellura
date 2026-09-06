@@ -32,6 +32,7 @@ import {
 import { useLanguage } from "@/components/providers/language-provider";
 import { useAvatar } from "@/components/providers/avatar-provider";
 import { dictionaries, LanguageType, languageLabels } from "@/utils/i18n/dictionaries";
+import { normalizeOutputLanguage } from "@/utils/i18n/normalize-language";
 import { AI_PROVIDERS, AIProviderId } from "@/utils/ai-models";
 import { updateProfile, updateResume, updateAvatar, updateProviderKey } from "@/app/actions/profile";
 import { toast } from "sonner";
@@ -60,7 +61,7 @@ export function OnboardingWizard({
 
   // Step 1: Language preferences
   const [uiLang, setUiLang] = useState<LanguageType>(language);
-  const [outLang, setOutLang] = useState<string>(outputLanguage || initialOutputLang || "Spanish");
+  const [outLang, setOutLang] = useState<string>(() => normalizeOutputLanguage(outputLanguage || initialOutputLang, "Spanish"));
 
   // Step 2: Avatar
   const [avatarPreview, setAvatarPreview] = useState<string | null>(avatarUrl || googleAvatarUrl || null);

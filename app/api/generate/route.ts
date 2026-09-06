@@ -9,6 +9,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { AIProviderId, DEFAULT_SPEED_MODEL } from "@/utils/ai-models";
 import { extractCompanyAndRole } from "@/utils/extract-company";
 import { parseStoredUserKeys } from "@/utils/byok";
+import { normalizeOutputLanguage } from "@/utils/i18n/normalize-language";
 
 export async function POST(req: Request) {
   try {
@@ -83,8 +84,14 @@ export async function POST(req: Request) {
     }
 
     // 4. Construct Prompts
-    // Language priority: explicit output_language > ui_language > English fallback.
-    const targetLanguage = profile?.output_language || profile?.ui_language || "English";
+    // Language priority: explicit output_language > ui_language > Spanish fallback.
+    // Both columns are clamped to canonical names (never ISO codes) on write,
+    // but normalize defensively: a raw code here ("es") would make the model
+    // ignore the target language and answer in English.
+    const targetLanguage = normalizeOutputLanguage(
+      profile?.output_language || profile?.ui_language,
+      "Spanish"
+    );
     const systemPrompt = `You are an elite, highly persuasive executive cover letter writer.
 Your task is to write a highly tailored cover letter based on the user's master resume and the provided job description.
 Tone: ${tone || "Professional & Polished"}
