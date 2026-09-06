@@ -12,7 +12,7 @@ export default async function DashboardPage() {
   if (user) {
     const { data } = await supabase
       .from("profiles")
-      .select("byok_key, resume_text, output_language, avatar_url")
+      .select("byok_key, resume_text, output_language, avatar_url, has_completed_onboarding")
       .eq("id", user.id)
       .single();
 
@@ -31,6 +31,7 @@ export default async function DashboardPage() {
         initialResume={profile?.resume_text || ""}
         initialOutputLang={profile?.output_language || "Spanish"}
         googleAvatarUrl={googleAvatarUrl}
+        hasCompletedOnboarding={profile?.has_completed_onboarding ?? false}
       />
       <GenerateWorkspace configuredProviders={configuredProviders} />
     </div>

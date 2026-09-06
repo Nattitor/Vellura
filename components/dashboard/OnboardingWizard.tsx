@@ -34,7 +34,7 @@ import { useAvatar } from "@/components/providers/avatar-provider";
 import { dictionaries, LanguageType, languageLabels } from "@/utils/i18n/dictionaries";
 import { normalizeOutputLanguage } from "@/utils/i18n/normalize-language";
 import { AI_PROVIDERS, AIProviderId } from "@/utils/ai-models";
-import { updateProfile, updateResume, updateAvatar, updateProviderKey } from "@/app/actions/profile";
+import { updateProfile, updateResume, updateAvatar, updateProviderKey, updateOnboardingCompleted } from "@/app/actions/profile";
 import { toast } from "sonner";
 
 interface OnboardingWizardProps {
@@ -201,8 +201,10 @@ export function OnboardingWizard({
           }
         }
 
-        // 4. Mark local completion ONLY on verified success
+        // 4. Mark local completion ONLY on verified success + best-effort DB flag
+        // (tolerates the migration not being run yet — localStorage still wins).
         localStorage.setItem(`vellura_onboarding_${userEmail}`, "true");
+        updateOnboardingCompleted().catch(() => {});
         setIsOpen(false);
         toast.success(dict.onboarding?.savedSuccess || "Welcome to Vellura! Your workspace is ready.");
       } catch (err: any) {
@@ -245,6 +247,7 @@ export function OnboardingWizard({
               <button
                 onClick={() => {
                   localStorage.setItem(`vellura_onboarding_${userEmail}`, "true");
+                  updateOnboardingCompleted().catch(() => {});
                   setIsOpen(false);
                 }}
                 className="touch-target text-zinc-500 hover:text-white transition-colors cursor-pointer p-1"
@@ -620,6 +623,7 @@ export function OnboardingWizard({
                     variant="ghost"
                     onClick={() => {
                       localStorage.setItem(`vellura_onboarding_${userEmail}`, "true");
+                      updateOnboardingCompleted().catch(() => {});
                       setIsOpen(false);
                     }}
                     className="h-11 px-3 text-xs text-zinc-500 hover:text-zinc-300 cursor-pointer"
