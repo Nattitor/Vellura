@@ -49,6 +49,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/components/providers/language-provider";
+import { analyzeJobDescription, JdFeedbackBox } from "@/utils/validation/job-description";
 import { useQuota } from "@/components/providers/quota-provider";
 import { AI_MODELS, AIProviderId, DEFAULT_SPEED_MODEL, AI_PROVIDERS } from "@/utils/ai-models";
 import { ModelSelectionDrawer } from "@/components/dashboard/ModelSelectionDrawer";
@@ -61,7 +62,7 @@ export function GenerateWorkspace({
 }: {
   configuredProviders?: string[];
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const router = useRouter();
   const { dailyLimit, decrementLimit } = useQuota();
   const [tone, setTone] = useState("professional");
@@ -324,22 +325,37 @@ export function GenerateWorkspace({
         <div className="ethereal-panel p-6 rounded-xl flex flex-col h-full min-h-0">
           
           {/* Header with (i) Tooltip & Drawer Trigger */}
-          <div className="flex items-center justify-between gap-3 mb-5 shrink-0">
+          <div className="relative flex items-center justify-between gap-3 mb-5 shrink-0">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-white tracking-tight">{t.workspace.jobContext}</h2>
-              
-              {/* Sleek (i) Info Tooltip Hover */}
-              <div className="relative group/tooltip">
+
+              {/* Sleek (i) Info Tooltip: hover on desktop, tap toggles + auto-hides */}
+              <div className="group/tooltip">
                 <button
                   type="button"
                   aria-label="Información de contexto"
                   aria-expanded={showContextTip}
-                  onClick={() => setShowContextTip((v) => !v)}
+                  onClick={() => {
+                    const next = !showContextTip;
+                    setShowContextTip(next);
+                    if (next) {
+                      window.setTimeout(() => setShowContextTip(false), 6000);
+                    }
+                  }}
                   className="touch-target w-5 h-5 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-help"
                 >
                   <Info className="w-4 h-4" />
                 </button>
-                <div className={`absolute left-0 top-full mt-2 ${showContextTip ? "block" : "hidden"} group-hover/tooltip:block w-64 max-w-[calc(100vw-3rem)] p-2.5 bg-zinc-950/95 border border-white/15 rounded-xl text-[11px] text-zinc-300 shadow-2xl z-50 backdrop-blur-md leading-relaxed animate-in fade-in zoom-in-95 duration-150 pointer-events-none`}>
+                {showContextTip && (
+                  <button
+                    type="button"
+                    aria-hidden
+                    tabIndex={-1}
+                    onClick={() => setShowContextTip(false)}
+                    className="fixed inset-0 z-40 cursor-default bg-transparent"
+                  />
+                )}
+                <div className={`absolute left-0 right-0 sm:left-0 sm:right-auto top-full mt-2 ${showContextTip ? "block" : "hidden"} group-hover/tooltip:block sm:w-64 p-2.5 bg-zinc-950/95 border border-white/15 rounded-xl text-[11px] text-zinc-300 shadow-2xl z-50 backdrop-blur-md leading-relaxed animate-in fade-in zoom-in-95 duration-150 pointer-events-none`}>
                   {t.workspace.jobContextDesc}
                 </div>
               </div>
@@ -507,6 +523,11 @@ export function GenerateWorkspace({
                 <span>{wordCount} {wordCount === 1 ? (t.workspace.word || "palabra") : (t.workspace.words || "palabras")}</span>
                 <span>{charCount} {charCount === 1 ? (t.workspace.character || "carácter") : (t.workspace.characters || "caracteres")}</span>
               </div>
+
+              {/* Job-description sanity check: informational only, never blocks */}
+              {jobDescription.trim().length > 0 && (
+                <JdFeedbackBox analysis={analyzeJobDescription(jobDescription)} lang={language} />
+              )}
             </div>
 
           </div>

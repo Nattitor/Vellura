@@ -6,21 +6,44 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, Zap, Key, Shield } from "lucide-react";
 import { useLanguage } from "@/components/providers/language-provider";
+import type { LanguageType } from "@/utils/i18n/dictionaries";
+import { languageTypeToBcp47 } from "@/utils/i18n/bcp47";
 import { DEFAULT_DAILY_LIMIT } from "@/utils/limits";
 import { toast } from "sonner";
 
+const RESET_HINT: Record<LanguageType, string> = {
+  Spanish: "Se reinician a las 00:00 UTC ({local} en tu zona)",
+  English: "Resets at 00:00 UTC ({local} your time)",
+  French: "Réinitialisation à 00h00 UTC ({local} heure locale)",
+  Portuguese: "Reinicia às 00:00 UTC ({local} no seu horário)",
+};
+
 export function AIUsageForm({ dailyLimit, hasBYOK }: { dailyLimit: number; hasBYOK: boolean }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [apiKey, setApiKey] = useState("");
   const [isPending, startTransition] = useTransition();
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Midnight UTC rendered in the user's own timezone, so the reset time is
+  // meaningful without doing mental timezone math.
+  let resetLocal = "";
+  try {
+    const midnightUtc = new Date();
+    midnightUtc.setUTCHours(24, 0, 0, 0);
+    resetLocal = new Intl.DateTimeFormat(languageTypeToBcp47(language), {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(midnightUtc);
+  } catch {
+    resetLocal = "00:00";
+  }
+
   const handleSaveKey = () => {
     if (!apiKey.trim()) return;
     setStatus("idle");
     setErrorMessage("");
-    
+
     startTransition(async () => {
       const result = await updateBYOK(apiKey);
       if (result.error) {
@@ -57,6 +80,9 @@ export function AIUsageForm({ dailyLimit, hasBYOK }: { dailyLimit: number; hasBY
             </span>
             <span className="text-[10px] text-amethyst-glow font-medium">
               {t.settings.remainingGen}
+            </span>
+            <span className="text-[10px] text-zinc-500 font-medium text-right leading-snug mt-0.5">
+              {(RESET_HINT[language] ?? RESET_HINT.Spanish).replace("{local}", resetLocal)}
             </span>
           </div>
         </div>
