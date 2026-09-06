@@ -13,33 +13,34 @@ interface AvatarContextType {
 
 const AvatarContext = createContext<AvatarContextType | undefined>(undefined);
 
-const STORAGE_KEY = "vellura_avatar";
+// Legacy key from when the avatar was cached globally in localStorage — shared
+// across accounts on the same browser, so switching users showed the previous
+// photo. No longer read; removed once below if present.
+const LEGACY_STORAGE_KEY = "vellura_avatar";
 
-export function AvatarProvider({ 
+export function AvatarProvider({
   children,
-  initialAvatar = null 
-}: { 
+  initialAvatar = null
+}: {
   children: React.ReactNode;
   initialAvatar?: string | null;
 }) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatar);
   const { t } = useLanguage();
 
+  // The avatar is server-rendered per account (initialAvatar): following it —
+  // including back to null — means an account switch can never leak the
+  // previous user's photo. No client-side cache by design.
   useEffect(() => {
-    if (initialAvatar) {
-      setAvatarUrl(initialAvatar);
-      try {
-        localStorage.setItem(STORAGE_KEY, initialAvatar);
-      } catch {}
-    } else {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          setAvatarUrl(saved);
-        }
-      } catch {}
-    }
+    setAvatarUrl(initialAvatar ?? null);
   }, [initialAvatar]);
+
+  // One-time cleanup of the legacy global cache, if present.
+  useEffect(() => {
+    try {
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch {}
+  }, []);
 
   const uploadAvatar = useCallback(async (file: File): Promise<boolean> => {
     if (!file || !file.type.startsWith("image/")) {
@@ -76,14 +77,12 @@ export function AvatarProvider({
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
             const optimizedBase64 = canvas.toDataURL("image/jpeg", 0.85);
-            
+
             try {
-              localStorage.setItem(STORAGE_KEY, optimizedBase64);
-              setAvatarUrl(optimizedBase64);
-              
               // Persist to Cloud in Supabase (User Metadata + Profiles)
               await saveAvatarToCloud(optimizedBase64);
-              
+              setAvatarUrl(optimizedBase64);
+
               toast.success(t.settings.photoUpdated);
               resolve(true);
             } catch {
@@ -110,9 +109,8 @@ export function AvatarProvider({
 
   const removeAvatar = useCallback(async () => {
     try {
-      localStorage.removeItem(STORAGE_KEY);
-      setAvatarUrl(null);
       await saveAvatarToCloud(null);
+      setAvatarUrl(null);
       toast.info(t.settings.photoRemoved);
     } catch {
       // Ignore
